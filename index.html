@@ -177,6 +177,12 @@
     .upload-button:hover, .use-arrow-button:hover { border-color: var(--brand); background: #fff6f8; }
     .upload-button input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     .upload-status { flex: 1 1 190px; color: var(--muted); font-size: 12px; text-align: left; }
+    .scene-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; width: 100%; margin-top: 3px; }
+    .scene-picker > span { margin-right: 3px; color: var(--muted); font-size: 12px; font-weight: 750; }
+    .scene-button { width: 40px; height: 40px; padding: 0; border: 1px solid #d6bdc6; border-radius: 8px; color: var(--brand-dark); background: white; font: inherit; font-weight: 800; cursor: pointer; }
+    .scene-button:hover { border-color: var(--brand); background: #fff6f8; }
+    .scene-button.active { color: white; border-color: var(--brand); background: var(--brand); }
+    .scene-button:disabled { cursor: wait; opacity: .65; }
     .axis { stroke: #5e687a; stroke-width: 1.6; }
     .element { stroke: #182236; stroke-width: 4; }
     .tick { stroke: #5e687a; stroke-width: 1.5; }
@@ -328,6 +334,17 @@
           <label class="upload-button">Use image or GIF<input id="objectImageUpload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
           <button class="use-arrow-button" id="removeObjectImage" type="button" hidden>Use arrow</button>
           <span class="upload-status" id="uploadStatus">PNG, JPG, WebP or GIF · maximum 8 MB</span>
+          <div class="scene-picker" id="builtInScenes" aria-label="Built-in animated scenes">
+            <span>Scenes</span>
+            <button class="scene-button" type="button" data-scene="1">1</button>
+            <button class="scene-button" type="button" data-scene="2">2</button>
+            <button class="scene-button" type="button" data-scene="3">3</button>
+            <button class="scene-button" type="button" data-scene="4">4</button>
+            <button class="scene-button" type="button" data-scene="5">5</button>
+            <button class="scene-button" type="button" data-scene="6">6</button>
+            <button class="scene-button" type="button" data-scene="7">7</button>
+            <button class="scene-button" type="button" data-scene="8">8</button>
+          </div>
         </div>
       </div>
       <div class="readout" aria-live="polite">
@@ -353,7 +370,7 @@
 
     const state = {
       element: 'lens', shape: 'convex', u: 150, fMagnitude: 60, caseId: 'beyond2f', rays: new Set([1, 2]),
-      customImageUrl: null, customImageName: '', customImageAspect: 1
+      customImageUrl: null, customImageName: '', customImageAspect: 1, selectedScene: 0
     };
     const W = 1100, H = 560, axisY = 280, elementX = 550, scale = 2, objectHeight = 65;
     const left = 28, right = W - 28;
@@ -826,6 +843,7 @@
     const uploadInput = $('objectImageUpload');
     const removeImageButton = $('removeObjectImage');
     const uploadStatus = $('uploadStatus');
+    const scenePicker = $('builtInScenes');
     const allowedImageTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
     async function makeGifLoopForever(file) {
@@ -866,6 +884,37 @@
       return new Blob([patched], { type: 'image/gif' });
     }
 
+    function markSelectedScene(sceneNumber) {
+      state.selectedScene = sceneNumber;
+      scenePicker.querySelectorAll('[data-scene]').forEach(button =>
+        button.classList.toggle('active', +button.dataset.scene === sceneNumber));
+    }
+
+    function displayMediaBlob(blob, name, statusText, sceneNumber = 0) {
+      return new Promise((resolve, reject) => {
+        const nextUrl = URL.createObjectURL(blob);
+        const probe = new Image();
+        probe.onload = () => {
+          if (state.customImageUrl) URL.revokeObjectURL(state.customImageUrl);
+          state.customImageUrl = nextUrl;
+          state.customImageName = name;
+          state.customImageAspect = probe.naturalWidth/probe.naturalHeight || 1;
+          mediaNodes.object.src = nextUrl;
+          mediaNodes.image.src = nextUrl;
+          uploadStatus.textContent = statusText;
+          removeImageButton.hidden = false;
+          markSelectedScene(sceneNumber);
+          render();
+          resolve();
+        };
+        probe.onerror = () => {
+          URL.revokeObjectURL(nextUrl);
+          reject(new Error('Image could not be displayed'));
+        };
+        probe.src = nextUrl;
+      });
+    }
+
     uploadInput.addEventListener('change', async () => {
       const file = uploadInput.files && uploadInput.files[0];
       if (!file) return;
@@ -881,27 +930,38 @@
       }
 
       const displayFile = file.type === 'image/gif' ? await makeGifLoopForever(file) : file;
-      const nextUrl = URL.createObjectURL(displayFile);
-      const probe = new Image();
-      probe.onload = () => {
-        if (state.customImageUrl) URL.revokeObjectURL(state.customImageUrl);
-        state.customImageUrl = nextUrl;
-        state.customImageName = file.name;
-        state.customImageAspect = probe.naturalWidth/probe.naturalHeight || 1;
-        mediaNodes.object.src = nextUrl;
-        mediaNodes.image.src = nextUrl;
-        uploadStatus.textContent = file.type === 'image/gif'
-          ? `${file.name} · looping continuously · displayed locally`
-          : `${file.name} · displayed locally`;
-        removeImageButton.hidden = false;
-        render();
-      };
-      probe.onerror = () => {
-        URL.revokeObjectURL(nextUrl);
+      try {
+        await displayMediaBlob(
+          displayFile,
+          file.name,
+          file.type === 'image/gif'
+            ? `${file.name} · looping continuously · displayed locally`
+            : `${file.name} · displayed locally`
+        );
+      } catch (error) {
         uploadStatus.textContent = 'This image could not be displayed. Please try another file.';
         uploadInput.value = '';
-      };
-      probe.src = nextUrl;
+      }
+    });
+
+    scenePicker.addEventListener('click', async event => {
+      const button = event.target.closest('[data-scene]');
+      if (!button) return;
+      const sceneNumber = +button.dataset.scene;
+      const buttons = [...scenePicker.querySelectorAll('[data-scene]')];
+      buttons.forEach(sceneButton => sceneButton.disabled = true);
+      uploadStatus.textContent = `Loading scene ${sceneNumber}…`;
+      try {
+        const response = await fetch(`assets/scenes/scene-${sceneNumber}.gif`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const loopingGif = await makeGifLoopForever(await response.blob());
+        await displayMediaBlob(loopingGif, `Scene ${sceneNumber}`, `Scene ${sceneNumber} · looping continuously`, sceneNumber);
+        uploadInput.value = '';
+      } catch (error) {
+        uploadStatus.textContent = `Scene ${sceneNumber} could not be loaded. Please try again.`;
+      } finally {
+        buttons.forEach(sceneButton => sceneButton.disabled = false);
+      }
     });
 
     removeImageButton.addEventListener('click', () => {
@@ -913,6 +973,7 @@
       mediaNodes.image.removeAttribute('src');
       uploadInput.value = '';
       removeImageButton.hidden = true;
+      markSelectedScene(0);
       uploadStatus.textContent = 'PNG, JPG, WebP or GIF · maximum 8 MB';
       render();
     });

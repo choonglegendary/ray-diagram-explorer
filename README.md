@@ -30,6 +30,7 @@ Then visit <http://localhost:8000>.
 - Eye indicator on the viewing side whenever backward ray tracing forms a virtual image
 - Local PNG, JPG, WebP and animated-GIF objects, transformed into the calculated image
 - Uploaded GIF loop metadata is normalised to continuous playback without changing the original file
+- Eight on-demand built-in GIF scenes selectable through compact numbered buttons
 - Draggable object and image positions
 - Adjustable object distance and focal length
 - Live image distance, magnification, orientation, size and real/virtual classification
