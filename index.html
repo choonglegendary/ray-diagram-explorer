@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ray Diagram Explorer | Legendary Six</title>
+  <style>
+    :root {
+      --ink: #302027;
+      --muted: #75636a;
+      --line: #eadfd8;
+      --paper: #ffffff;
+      --page: #faf5ef;
+      --brand: #a52249;
+      --brand-dark: #7f1737;
+      --gold: #ffdc7a;
+      --cream: #fff9eb;
+      --blue: #2864dc;
+      --purple: #8b4bc1;
+      --cyan: #0f8ca8;
+      --red: #e34343;
+      --green: #168568;
+      --amber: #cf7a13;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--ink);
+      background: var(--page);
+      font: 15px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 28px auto;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 18px 22px;
+      margin-bottom: 18px;
+      color: var(--cream);
+      background: linear-gradient(135deg, var(--brand-dark), var(--brand));
+      border-radius: 18px;
+      box-shadow: 0 12px 30px rgba(127, 23, 55, .18);
+    }
+
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 36px); letter-spacing: -0.03em; }
+    header p { margin: 4px 0 0; color: #f7dfe6; }
+    .brand-lockup { display: flex; align-items: center; gap: 16px; }
+    .brand-logo { width: 76px; height: 76px; border: 3px solid rgba(255,220,122,.72); border-radius: 17px; object-fit: cover; box-shadow: 0 5px 15px rgba(55,5,22,.2); }
+    .brand-name { display: block; margin-bottom: 2px; color: var(--gold); font-size: 12px; font-weight: 850; letter-spacing: .16em; text-transform: uppercase; }
+    .brand-contact { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 4px; color: #f7dfe6; font-size: 12px; font-weight: 650; }
+    .brand-contact .phone { color: var(--gold); }
+
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 10px 32px rgba(91, 43, 57, .07);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.5fr auto;
+      gap: 16px;
+      align-items: end;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    .field > label, .field .field-label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f6f8fb;
+    }
+
+    .segmented button, .reset {
+      border: 0;
+      border-radius: 7px;
+      color: var(--muted);
+      background: transparent;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .segmented button { min-height: 42px; padding: 9px 10px; }
+    .segmented button.active { color: var(--ink); background: white; box-shadow: 0 1px 5px rgba(25,35,55,.13); }
+
+    .range-row { display: flex; align-items: center; gap: 10px; }
+    input[type="range"] { width: 100%; accent-color: var(--brand); cursor: pointer; }
+    output { min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 750; }
+
+    .reset { padding: 10px 14px; border: 1px solid var(--line); background: white; }
+    .reset:hover { border-color: #b8c2d2; }
+
+    .stage-card { overflow: hidden; }
+    .case-picker {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .case-picker > span { margin-right: 4px; color: var(--muted); font-size: 12px; font-weight: 750; white-space: nowrap; }
+    .case-picker button {
+      flex: 0 0 auto;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: white;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 40px;
+    }
+    .case-picker button.active { color: white; border-color: var(--brand); background: var(--brand); }
+    .ray-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 13px 18px; border-bottom: 1px solid var(--line); overflow: visible; }
+    .ray-picker > strong { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .ray-choice { display: flex; align-items: center; gap: 7px; white-space: nowrap; cursor: pointer; font-size: 13px; font-weight: 700; }
+    .ray-choice input { width: 17px; height: 17px; margin: 0; accent-color: var(--brand); }
+    .ray-message { margin-left: auto; color: var(--amber); font-size: 12px; font-weight: 750; white-space: nowrap; }
+    .stage-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hint { color: var(--muted); font-size: 13px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); }
+    .key::before { content: ""; display: inline-block; width: 20px; border-top: 3px solid; margin-right: 6px; vertical-align: 3px; }
+    .key.red::before { color: var(--red); }
+    .key.blue::before { color: var(--blue); }
+    .key.purple::before { color: var(--purple); }
+    .key.cyan::before { color: var(--cyan); }
+    .key.dashed::before { color: #98a1b2; border-top-style: dashed; }
+
+    .diagram-scroll { position: relative; width: 100%; overflow: hidden; }
+    #diagram { display: block; width: 100%; height: auto; aspect-ratio: 1100 / 560; touch-action: pan-y; user-select: none; }
+    .media-layer { position: absolute; inset: 0; pointer-events: none; }
+    .diagram-media { position: absolute; visibility: hidden; object-fit: contain; box-sizing: border-box; border: 2px solid var(--gold); border-radius: 4px; filter: drop-shadow(0 2px 3px rgba(45,22,30,.18)); transform-origin: center; pointer-events: none; }
+    .diagram-media.virtual-picture { opacity: .68; }
+    .diagram-control { padding: 14px 18px 16px; border-top: 1px solid var(--line); background: #fffaf7; }
+    .diagram-control label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+    .diagram-control .range-row { max-width: 760px; margin: 0 auto; }
+    .image-upload { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 9px; max-width: 760px; margin: 13px auto 0; padding-top: 12px; border-top: 1px solid var(--line); }
+    .image-upload-title { color: var(--muted); font-size: 12px; font-weight: 750; }
+    .upload-button, .use-arrow-button { min-height: 40px; padding: 9px 13px; border: 1px solid #d6bdc6; border-radius: 9px; color: var(--brand-dark); background: white; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }
+    .diagram-control .upload-button { display: inline-flex; align-items: center; justify-content: center; gap: 0; margin: 0; color: var(--brand-dark); font-size: 13px; letter-spacing: 0; text-transform: none; }
+    .upload-button:hover, .use-arrow-button:hover { border-color: var(--brand); background: #fff6f8; }
+    .upload-button input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    .upload-status { flex: 1 1 190px; color: var(--muted); font-size: 12px; text-align: left; }
+    .axis { stroke: #5e687a; stroke-width: 1.6; }
+    .element { stroke: #182236; stroke-width: 4; }
+    .tick { stroke: #5e687a; stroke-width: 1.5; }
+    .ray-red { stroke: var(--red); }
+    .ray-blue { stroke: var(--blue); }
+    .ray-purple { stroke: var(--purple); }
+    .ray-cyan { stroke: var(--cyan); }
+    .ray { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+    .virtual { fill: none; stroke: #98a1b2; stroke-width: 2; stroke-dasharray: 7 6; }
+    .object { stroke: var(--green); fill: var(--green); }
+    .image { stroke: var(--amber); fill: var(--amber); }
+    .arrow-line { stroke-width: 5; stroke-linecap: round; }
+    .drag-target { cursor: ew-resize; touch-action: none; }
+    .svg-label { fill: #4f5a6f; font-size: 13px; font-weight: 650; paint-order: stroke; stroke: white; stroke-width: 4px; stroke-linejoin: round; }
+    .object-label { fill: var(--green); }
+    .image-label { fill: var(--amber); }
+    .element-label { fill: var(--ink); font-size: 13px; font-weight: 750; }
+
+    .readout {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr) 2.1fr;
+      border-top: 1px solid var(--line);
+    }
+
+    .datum { padding: 15px 18px; border-right: 1px solid var(--line); }
+    .datum:last-child { border-right: 0; }
+    .datum span { display: block; color: var(--muted); font-size: 12px; }
+    .datum strong { display: block; margin-top: 3px; font-size: 18px; font-variant-numeric: tabular-nums; }
+    .description strong { color: var(--brand); font-size: 15px; }
+    .eye-outline { fill: var(--cream); stroke: var(--brand-dark); stroke-width: 3; }
+    .eye-iris { fill: var(--gold); stroke: var(--brand-dark); stroke-width: 2; }
+    .eye-pupil { fill: var(--brand-dark); }
+
+    .note { margin: 14px 3px 0; color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 860px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      .reset { grid-column: span 2; }
+      .readout { grid-template-columns: repeat(2, 1fr); }
+      .description { grid-column: span 2; }
+      .datum:nth-child(2), .datum:nth-child(4) { border-right: 0; }
+      .stage-top { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 620px) {
+      .app { width: min(100% - 16px, 1180px); margin: 12px auto; }
+      .controls { grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px; }
+      .controls .field:nth-child(3), .reset { grid-column: 1 / -1; }
+      .reset { min-height: 44px; }
+      .ray-picker { flex-wrap: wrap; gap: 10px 14px; padding: 12px 14px; }
+      .ray-picker > strong, .ray-message { width: 100%; }
+      .ray-message { margin-left: 0; white-space: normal; }
+      .ray-choice { min-height: 34px; }
+      .case-picker { padding: 10px 14px; }
+      .stage-top { padding: 11px 14px; }
+      .hint { font-size: 12px; }
+      .legend { gap: 8px; }
+      header { align-items: flex-start; padding: 14px; }
+      .brand-logo { width: 58px; height: 58px; border-radius: 13px; }
+      h1 { font-size: 23px; }
+      header p { font-size: 12px; }
+      .readout { grid-template-columns: 1fr 1fr; }
+      .datum { padding: 12px 14px; }
+      .datum strong { font-size: 16px; }
+      .diagram-control { padding: 13px 14px 15px; }
+      .image-upload { justify-content: flex-start; }
+      .upload-status { flex-basis: 100%; }
+      #diagram .ray { stroke-width: 4; }
+      #diagram .virtual { stroke-width: 3.2; }
+      #diagram .axis { stroke-width: 2.4; }
+      #diagram .element { stroke-width: 5; }
+      #diagram .tick { stroke-width: 2.4; }
+      #diagram .svg-label { font-size: 21px; stroke-width: 6px; }
+      #diagram .element-label { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand-lockup">
+        <img class="brand-logo" src="assets/legendary-six-logo.jpg" alt="Legendary Six logo">
+        <div>
+          <span class="brand-name">Legendary Six</span>
+          <h1>Ray Diagram Explorer</h1>
+          <div class="brand-contact"><span>Mr. Choong</span><span class="phone">016-484 0556</span></div>
+        </div>
+      </div>
+    </header>
+
+    <section class="controls card" aria-label="Simulation controls">
+      <div class="field">
+        <span class="field-label">Optical element</span>
+        <div class="segmented" id="elementControl">
+          <button class="active" data-value="lens">Lens</button>
+          <button data-value="mirror">Mirror</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="field-label">Shape</span>
+        <div class="segmented" id="shapeControl">
+          <button class="active" data-value="convex">Convex</button>
+          <button data-value="concave">Concave</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="focalLength">Focal length, |f|</label>
+        <div class="range-row">
+          <input id="focalLength" type="range" min="20" max="100" value="60" step="1">
+          <output id="fOutput">60 cm</output>
+        </div>
+      </div>
+      <button class="reset" id="reset">Reset</button>
+    </section>
+
+    <section class="stage-card card">
+      <div class="ray-picker" id="rayPicker" aria-label="Ray selection">
+        <strong>Show rays</strong>
+        <label class="ray-choice"><input type="checkbox" data-ray="1" checked> 1: Parallel → F</label>
+        <label class="ray-choice"><input type="checkbox" data-ray="2" checked> 2: F → parallel</label>
+        <label class="ray-choice"><input type="checkbox" data-ray="3"> 3: <span id="thirdRayName">Through optical centre</span></label>
+        <label class="ray-choice"><input type="checkbox" data-ray="4" disabled> 4: <span id="fourthRayName">Mirror only: through 2F (C)</span></label>
+        <span class="ray-message" id="rayMessage"></span>
+      </div>
+      <div class="case-picker" id="casePicker" aria-label="Object-position cases">
+        <span>Object position</span>
+        <button data-case="infinity">u = ∞</button>
+        <button class="active" data-case="beyond2f">u &gt; 2F</button>
+        <button data-case="at2f">u = 2F</button>
+        <button data-case="between">F &lt; u &lt; 2F</button>
+        <button data-case="atf">u = F</button>
+        <button data-case="inside">u &lt; F</button>
+      </div>
+      <div class="diagram-scroll" role="region" aria-label="Ray diagram">
+        <svg id="diagram" viewBox="0 0 1100 560" role="img" aria-label="Interactive ray diagram"></svg>
+        <div class="media-layer" aria-hidden="true">
+          <img id="objectMedia" class="diagram-media" alt="">
+          <img id="imageMedia" class="diagram-media" alt="">
+        </div>
+      </div>
+      <div class="diagram-control">
+        <label for="objectDistance"><span>Adjust object distance, u</span><span>Move the object</span></label>
+        <div class="range-row">
+          <input id="objectDistance" type="range" min="10" max="260" value="150" step="1">
+          <output id="uOutput">150 cm</output>
+        </div>
+        <div class="image-upload">
+          <span class="image-upload-title">Object appearance</span>
+          <label class="upload-button">Use image or GIF<input id="objectImageUpload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+          <button class="use-arrow-button" id="removeObjectImage" type="button" hidden>Use arrow</button>
+          <span class="upload-status" id="uploadStatus">PNG, JPG, WebP or GIF · maximum 8 MB</span>
+        </div>
+      </div>
+      <div class="readout" aria-live="polite">
+        <div class="datum"><span>Object, u</span><strong id="uValue">150 cm</strong></div>
+        <div class="datum"><span>Focal length, f</span><strong id="fValue">+60 cm</strong></div>
+        <div class="datum"><span>Image, v</span><strong id="vValue">100 cm</strong></div>
+        <div class="datum"><span>Magnification, m</span><strong id="mValue">−0.67</strong></div>
+        <div class="datum description"><span>Image formed</span><strong id="imageDescription">Real, inverted and diminished</strong></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const svg = document.querySelector('#diagram');
+    const controls = {
+      element: document.querySelector('#elementControl'),
+      shape: document.querySelector('#shapeControl'),
+      cases: document.querySelector('#casePicker'),
+      rays: document.querySelector('#rayPicker'),
+      u: document.querySelector('#objectDistance'),
+      f: document.querySelector('#focalLength')
+    };
+
+    const state = {
+      element: 'lens', shape: 'convex', u: 150, fMagnitude: 60, caseId: 'beyond2f', rays: new Set([1, 2]),
+      customImageUrl: null, customImageName: '', customImageAspect: 1
+    };
+    const W = 1100, H = 560, axisY = 280, elementX = 550, scale = 2, objectHeight = 65;
+    const left = 28, right = W - 28;
+    let dragging = null;
+    const mediaNodes = {
+      object: document.querySelector('#objectMedia'),
+      image: document.querySelector('#imageMedia')
+    };
+    const mediaUsed = new Set();
+
+    const $ = id => document.getElementById(id);
+    const signed = n => `${n >= 0 ? '+' : '−'}${Math.abs(n).toFixed(0)} cm`;
+    const num = n => Math.abs(n) >= 1000 ? '∞' : `${Math.abs(n).toFixed(1).replace('.0','')} cm`;
+
+    function focalSign() {
+      const converging = (state.element === 'lens' && state.shape === 'convex') ||
+        (state.element === 'mirror' && state.shape === 'concave');
+      return converging ? 1 : -1;
+    }
+
+    function values() {
+      const f = focalSign() * state.fMagnitude;
+      if (!Number.isFinite(state.u)) return { f, v: f, m: 0 };
+      const denominator = state.u - f;
+      const v = Math.abs(denominator) < .2 ? (f > 0 ? Infinity : -Infinity) : f * state.u / denominator;
+      return { f, v, m: Number.isFinite(v) ? -v / state.u : -Infinity };
+    }
+
+    function applyCase(caseId) {
+      state.caseId = caseId;
+      const factors = { beyond2f: 2.5, at2f: 2, between: 1.5, atf: 1, inside: .6 };
+      state.u = caseId === 'infinity' ? Infinity : state.fMagnitude * factors[caseId];
+      controls.cases.querySelectorAll('button').forEach(button =>
+        button.classList.toggle('active', button.dataset.case === caseId));
+    }
+
+    function markCustomCase() {
+      state.caseId = 'custom';
+      controls.cases.querySelectorAll('button').forEach(button => button.classList.remove('active'));
+    }
+
+    function el(name, attrs = {}, text = '') {
+      const node = document.createElementNS('http://www.w3.org/2000/svg', name);
+      for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+      if (text) node.textContent = text;
+      svg.appendChild(node);
+      return node;
+    }
+
+    function line(x1, y1, x2, y2, className) {
+      if (![x1,y1,x2,y2].every(Number.isFinite)) return;
+      if (className.includes('ray-red') || className.includes('ray-blue') || className.includes('ray-purple') || className.includes('ray-cyan')) {
+        const midX = (x1+x2)/2, midY = (y1+y2)/2;
+        const marker = className.includes('ray-red') ? 'rayArrowRed' :
+          className.includes('ray-blue') ? 'rayArrowBlue' :
+          className.includes('ray-purple') ? 'rayArrowPurple' : 'rayArrowCyan';
+        el('polyline', {
+          points: `${x1},${y1} ${midX},${midY} ${x2},${y2}`,
+          class: className,
+          'marker-mid': `url(#${marker})`
+        });
+        return;
+      }
+      el('line', { x1, y1, x2, y2, class: className });
+    }
+
+    function arrow(x, baseY, topY, className, label, draggable) {
+      const direction = topY < baseY ? -1 : 1;
+      const group = el('g', { class: draggable ? 'drag-target' : '' });
+      const shaft = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      shaft.setAttribute('x1', x); shaft.setAttribute('y1', baseY); shaft.setAttribute('x2', x); shaft.setAttribute('y2', topY);
+      shaft.setAttribute('class', `${className} arrow-line`); group.appendChild(shaft);
+      const head = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      head.setAttribute('points', `${x},${topY} ${x-8},${topY-direction*15} ${x+8},${topY-direction*15}`);
+      head.setAttribute('class', className); group.appendChild(head);
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', x + 11); text.setAttribute('y', topY + (direction < 0 ? -10 : 20));
+      text.setAttribute('class', `svg-label ${className}-label`); text.textContent = label; group.appendChild(text);
+      if (draggable) {
+        const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        hit.setAttribute('x', x - 45); hit.setAttribute('y', Math.min(baseY, topY) - 32);
+        hit.setAttribute('width', 90); hit.setAttribute('height', Math.abs(topY-baseY) + 64);
+        hit.setAttribute('fill', 'transparent'); hit.dataset.drag = draggable; group.appendChild(hit);
+      }
+    }
+
+    function picture(x, baseY, tipY, label, draggable, isVirtual = false) {
+      const height = Math.max(18, Math.abs(tipY-baseY));
+      const aspect = Math.max(.25, Math.min(2.5, state.customImageAspect));
+      const width = height*aspect;
+      const inverted = tipY > baseY;
+      const mediaKind = label === 'Object' ? 'object' : 'image';
+      const media = mediaNodes[mediaKind];
+      const displayTop = inverted ? baseY : baseY-height;
+      mediaUsed.add(mediaKind);
+      media.style.visibility = 'visible';
+      media.style.left = `${x/W*100}%`;
+      media.style.top = `${displayTop/H*100}%`;
+      media.style.width = `${width/W*100}%`;
+      media.style.height = `${height/H*100}%`;
+      media.style.transform = `translateX(-50%)${inverted ? ' scaleY(-1)' : ''}`;
+      media.classList.toggle('virtual-picture', isVirtual);
+
+      const group = el('g', {
+        class: draggable ? 'drag-target' : '',
+        transform: `translate(${x} ${baseY}) scale(1 ${inverted ? -1 : 1})`
+      });
+      if (draggable) group.dataset.drag = draggable;
+
+      if (draggable) {
+        const hit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        hit.setAttribute('x', -Math.max(45, width/2+14));
+        hit.setAttribute('y', -height-32);
+        hit.setAttribute('width', Math.max(90, width+28));
+        hit.setAttribute('height', height+64);
+        hit.setAttribute('fill', 'transparent');
+        group.appendChild(hit);
+      }
+
+      el('text', {
+        x: x+width/2+8,
+        y: tipY+(inverted ? 20 : -10),
+        class: `svg-label ${label === 'Object' ? 'object-label' : 'image-label'}`
+      }, label);
+    }
+
+    function finishMediaFrame() {
+      Object.entries(mediaNodes).forEach(([kind, node]) => {
+        if (!mediaUsed.has(kind)) node.style.visibility = 'hidden';
+      });
+    }
+
+    function drawEye(side) {
+      const x = side === 'right' ? right-52 : left+52;
+      const y = 84;
+      const group = el('g', { transform: `translate(${x} ${y})`, 'aria-label': 'Eye tracing virtual rays backward' });
+      const outline = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      outline.setAttribute('d', 'M -31 0 Q 0 -23 31 0 Q 0 23 -31 0 Z');
+      outline.setAttribute('class', 'eye-outline');
+      group.appendChild(outline);
+      const iris = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      iris.setAttribute('cx', side === 'right' ? -5 : 5);
+      iris.setAttribute('cy', '0');
+      iris.setAttribute('r', '11');
+      iris.setAttribute('class', 'eye-iris');
+      group.appendChild(iris);
+      const pupil = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      pupil.setAttribute('cx', side === 'right' ? -5 : 5);
+      pupil.setAttribute('cy', '0');
+      pupil.setAttribute('r', '4.5');
+      pupil.setAttribute('class', 'eye-pupil');
+      group.appendChild(pupil);
+    }
+
+    function drawBase(f) {
+      svg.innerHTML = '';
+      const defs = el('defs');
+      [
+        ['rayArrowRed', '#e34343'],
+        ['rayArrowBlue', '#2864dc'],
+        ['rayArrowPurple', '#8b4bc1'],
+        ['rayArrowCyan', '#0f8ca8']
+      ].forEach(([id, colour]) => {
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', id);
+        marker.setAttribute('viewBox', '0 0 10 8');
+        marker.setAttribute('refX', '5');
+        marker.setAttribute('refY', '4');
+        marker.setAttribute('markerWidth', '10');
+        marker.setAttribute('markerHeight', '8');
+        marker.setAttribute('markerUnits', 'userSpaceOnUse');
+        marker.setAttribute('orient', 'auto');
+        const head = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        head.setAttribute('d', 'M 0 0 L 10 4 L 0 8 Z');
+        head.setAttribute('fill', colour);
+        marker.appendChild(head);
+        defs.appendChild(marker);
+      });
+      line(22, axisY, W-22, axisY, 'axis');
+      line(elementX, 42, elementX, H-42, 'element');
+
+      const focalDistance = Math.abs(f)*scale;
+      [elementX-focalDistance, elementX+focalDistance].forEach(focusX => {
+        if (focusX > left && focusX < right) {
+          line(focusX, axisY-8, focusX, axisY+8, 'tick');
+          el('text', { x: focusX, y: axisY+27, 'text-anchor': 'middle', class: 'svg-label' }, 'F');
+        }
+      });
+      const actualMirrorCentreX = elementX - 2*f*scale;
+      [elementX-2*focalDistance, elementX+2*focalDistance].forEach(twoFX => {
+        if (twoFX > left && twoFX < right) {
+          line(twoFX, axisY-8, twoFX, axisY+8, 'tick');
+          const label = state.element === 'mirror' && Math.abs(twoFX-actualMirrorCentreX) < 1 ? '2F (C)' : '2F';
+          el('text', { x: twoFX, y: axisY+27, 'text-anchor': 'middle', class: 'svg-label' }, label);
+        }
+      });
+      el('text', { x: elementX, y: 31, 'text-anchor': 'middle', class: 'element-label' }, `${state.shape} ${state.element}`);
+    }
+
+    function clippedEndpoint(x0, y0, dx, dy) {
+      const tCandidates = [];
+      if (dx > 0) tCandidates.push((right-x0)/dx); if (dx < 0) tCandidates.push((left-x0)/dx);
+      if (dy > 0) tCandidates.push((H-24-y0)/dy); if (dy < 0) tCandidates.push((24-y0)/dy);
+      const t = Math.min(...tCandidates.filter(n => n > 0));
+      return [x0 + dx*t, y0 + dy*t];
+    }
+
+    function drawLens(f, v, objectX, objectTopY, imageX, imageTopY, showImage) {
+      // Rule 1: parallel to the axis, then through/apparently from F.
+      if (state.rays.has(1)) {
+        line(objectX, objectTopY, elementX, objectTopY, 'ray ray-red');
+        const end1 = clippedEndpoint(elementX, objectTopY, 1, objectHeight/(f*scale));
+        line(elementX, objectTopY, end1[0], end1[1], 'ray ray-red');
+        if (f < 0) line(elementX, objectTopY, elementX+f*scale, axisY, 'virtual');
+        if (showImage && v < 0) line(elementX, objectTopY, imageX, imageTopY, 'virtual');
+      }
+
+      // Rule 2: through/toward F, then parallel. It is undefined at u = F.
+      if (state.rays.has(2) && Number.isFinite(v)) {
+        const nearFocusX = elementX - f*scale;
+        const ray2Y = objectTopY + (elementX-objectX) * (axisY-objectTopY) / (nearFocusX-objectX);
+        line(objectX, objectTopY, elementX, ray2Y, 'ray ray-blue');
+        line(elementX, ray2Y, right, ray2Y, 'ray ray-blue');
+        if (f < 0) line(elementX, ray2Y, nearFocusX, axisY, 'virtual');
+        if (f > 0 && nearFocusX < objectX) line(nearFocusX, axisY, objectX, objectTopY, 'virtual');
+        if (showImage && v < 0) line(elementX, ray2Y, imageX, imageTopY, 'virtual');
+      }
+
+      // Rule 3: through the optical centre without deviation.
+      if (state.rays.has(3)) {
+        line(objectX, objectTopY, elementX, axisY, 'ray ray-purple');
+        const end3 = clippedEndpoint(elementX, axisY, 1, objectHeight/(state.u*scale));
+        line(elementX, axisY, end3[0], end3[1], 'ray ray-purple');
+      }
+    }
+
+    function drawMirror(f, v, objectX, objectTopY, imageX, imageTopY, showImage) {
+      // Rule 1: parallel to the axis, then reflected through/apparently from F.
+      if (state.rays.has(1)) {
+        line(objectX, objectTopY, elementX, objectTopY, 'ray ray-red');
+        const end1 = clippedEndpoint(elementX, objectTopY, -1, objectHeight/(f*scale));
+        line(elementX, objectTopY, end1[0], end1[1], 'ray ray-red');
+        if (showImage && v < 0) line(elementX, objectTopY, imageX, imageTopY, 'virtual');
+      }
+
+      // Rule 2: through/toward F, then reflected parallel. It is undefined at u = F.
+      if (state.rays.has(2) && Number.isFinite(v)) {
+        const focusX = elementX - f*scale;
+        const ray2Y = objectTopY + (elementX-objectX) * (axisY-objectTopY) / (focusX-objectX);
+        line(objectX, objectTopY, elementX, ray2Y, 'ray ray-blue');
+        line(elementX, ray2Y, left, ray2Y, 'ray ray-blue');
+        if (f < 0) line(elementX, ray2Y, focusX, axisY, 'virtual');
+        if (f > 0 && focusX < objectX) line(focusX, axisY, objectX, objectTopY, 'virtual');
+        if (showImage && v < 0) line(elementX, ray2Y, imageX, imageTopY, 'virtual');
+      }
+
+      // Rule 3: ray at the pole, reflected through the same angle.
+      if (state.rays.has(3)) {
+        line(objectX, objectTopY, elementX, axisY, 'ray ray-purple');
+        const end3 = clippedEndpoint(elementX, axisY, -1, objectHeight/(state.u*scale));
+        line(elementX, axisY, end3[0], end3[1], 'ray ray-purple');
+        if (showImage && v < 0) line(elementX, axisY, imageX, imageTopY, 'virtual');
+      }
+
+      // Rule 4: through/toward C = 2F, then reflected back along the same path.
+      if (state.rays.has(4) && Math.abs(state.u-2*f) >= .2) {
+        const centreX = elementX - 2*f*scale;
+        const ray4Y = objectTopY + (elementX-objectX) * (axisY-objectTopY) / (centreX-objectX);
+        const incidenceSlope = (ray4Y-objectTopY)/(elementX-objectX);
+        line(objectX, objectTopY, elementX, ray4Y, 'ray ray-cyan');
+        const end4 = clippedEndpoint(elementX, ray4Y, -1, -incidenceSlope);
+        line(elementX, ray4Y, end4[0], end4[1], 'ray ray-cyan');
+        if (f < 0) line(elementX, ray4Y, centreX, axisY, 'virtual');
+        if (f > 0 && centreX < objectX) line(centreX, axisY, objectX, objectTopY, 'virtual');
+        if (showImage && v < 0) line(elementX, ray4Y, imageX, imageTopY, 'virtual');
+      }
+    }
+
+    function drawInfinity(f, showImage) {
+      const incomingSlope = 0.30;
+      const imageCoordinate = state.element === 'lens' ? f : -f;
+      const imageX = elementX + imageCoordinate*scale;
+      const imageY = axisY + incomingSlope*f*scale;
+
+      if (state.element === 'lens') {
+        // Rule 2: the slanted incident ray passes through/toward F, then emerges parallel.
+        const ray2Y = axisY + incomingSlope*f*scale;
+        const ray2StartY = ray2Y - incomingSlope*(elementX-left);
+        line(left, ray2StartY, elementX, ray2Y, 'ray ray-blue');
+        line(elementX, ray2Y, right, ray2Y, 'ray ray-blue');
+
+        // Rule 3: a parallel member of the bundle passes through the optical centre undeviated.
+        const centreStartY = axisY - incomingSlope*(elementX-left);
+        line(left, centreStartY, elementX, axisY, 'ray ray-purple');
+        const centreEnd = clippedEndpoint(elementX, axisY, 1, incomingSlope);
+        line(elementX, axisY, centreEnd[0], centreEnd[1], 'ray ray-purple');
+
+        if (f < 0) {
+          line(elementX, ray2Y, elementX-f*scale, axisY, 'virtual');
+          line(elementX, ray2Y, imageX, imageY, 'virtual');
+        }
+      } else {
+        // Rule 2: through/toward F, then reflected parallel to the axis.
+        const ray2Y = axisY + incomingSlope*f*scale;
+        const ray2StartY = ray2Y - incomingSlope*(elementX-left);
+        line(left, ray2StartY, elementX, ray2Y, 'ray ray-blue');
+        line(elementX, ray2Y, left, ray2Y, 'ray ray-blue');
+
+        // Rule 4: through/toward 2F = C, then reflected back along the same path.
+        const ray4Y = axisY + 2*incomingSlope*f*scale;
+        const ray4StartY = ray4Y - incomingSlope*(elementX-left);
+        line(left, ray4StartY, elementX, ray4Y, 'ray ray-cyan');
+        const ray4End = clippedEndpoint(elementX, ray4Y, -1, -incomingSlope);
+        line(elementX, ray4Y, ray4End[0], ray4End[1], 'ray ray-cyan');
+
+        if (f < 0) {
+          line(elementX, ray2Y, elementX-f*scale, axisY, 'virtual');
+          line(elementX, ray2Y, imageX, imageY, 'virtual');
+          line(elementX, ray4Y, elementX-2*f*scale, axisY, 'virtual');
+        }
+      }
+      if (showImage) {
+        if (state.customImageUrl) picture(imageX, axisY, imageY, 'Image', false, f < 0);
+        else arrow(imageX, axisY, imageY, 'image', 'Image', false);
+      }
+      el('text', { x: left+8, y: 34, class: 'svg-label object-label' }, 'Off-axis object at ∞');
+    }
+
+    function imageWords(v, m) {
+      if (!Number.isFinite(v)) return 'Image at infinity';
+      const reality = v > 0 ? 'Real' : 'Virtual';
+      const orientation = m < 0 ? 'inverted' : 'upright';
+      const size = Math.abs(Math.abs(m)-1) < .03 ? 'same size' : Math.abs(m) > 1 ? 'magnified' : 'diminished';
+      return `${reality}, ${orientation} and ${size}`;
+    }
+
+    function rayStatus(f, v) {
+      if (!Number.isFinite(state.u)) {
+        return { ray2Degenerate: false, ray4Degenerate: false, validCount: 2, showImage: true, infinityBundle: true };
+      }
+      const ray2Degenerate = Number.isFinite(state.u) && f > 0 && !Number.isFinite(v) && state.rays.has(2);
+      const ray4Degenerate = state.element === 'mirror' && Number.isFinite(state.u) && f > 0 && Math.abs(state.u-2*f) < .2 && state.rays.has(4);
+      const validCount = state.rays.size - (ray2Degenerate ? 1 : 0) - (ray4Degenerate ? 1 : 0);
+      return { ray2Degenerate, ray4Degenerate, validCount, showImage: validCount >= 2, infinityBundle: false };
+    }
+
+    function updateRayInterface(status) {
+      $('thirdRayName').textContent = state.element === 'lens' ? 'Through optical centre' : 'At pole (equal angles)';
+      const fourthInput = controls.rays.querySelector('[data-ray="4"]');
+      controls.rays.querySelectorAll('[data-ray]').forEach(input => {
+        input.disabled = status.infinityBundle || (input.dataset.ray === '4' && state.element === 'lens');
+        if (status.infinityBundle) {
+          const infinityRays = state.element === 'lens' ? [2, 3] : [2, 4];
+          input.checked = infinityRays.includes(+input.dataset.ray);
+        } else {
+          input.checked = state.rays.has(+input.dataset.ray);
+        }
+      });
+      $('fourthRayName').textContent = state.element === 'lens' ? 'Mirror only: through 2F (C)' : 'Through 2F (C) → reflected back';
+      if (status.infinityBundle) {
+        $('rayMessage').textContent = state.element === 'lens' ? 'At ∞: use rays through F and the optical centre.' : 'At ∞: use rays through F and 2F (C).';
+      } else if (status.ray4Degenerate) {
+        $('rayMessage').textContent = status.showImage ? 'Ray 4 is unavailable at u = 2F.' : 'Ray 4 is unavailable here—select another ray.';
+      } else if (status.ray2Degenerate) {
+        $('rayMessage').textContent = status.showImage ? 'Ray 2 is unavailable at u = F.' : 'Ray 2 is unavailable here—select another ray.';
+      } else {
+        $('rayMessage').textContent = status.showImage ? '' : 'Select at least two rays to form the image.';
+      }
+    }
+
+    function render() {
+      mediaUsed.clear();
+      const { f, v, m } = values();
+      const status = rayStatus(f, v);
+      updateRayInterface(status);
+      drawBase(f);
+      if (!Number.isFinite(state.u)) {
+        drawInfinity(f, status.showImage);
+        if (v < 0) drawEye(state.element === 'lens' ? 'right' : 'left');
+        $('uOutput').textContent = '∞';
+        $('fOutput').textContent = `${Math.round(state.fMagnitude)} cm`;
+        $('uValue').textContent = '∞';
+        $('fValue').textContent = signed(f);
+        $('vValue').textContent = status.showImage ? signed(v) : '—';
+        $('mValue').textContent = status.showImage ? '0' : '—';
+        $('imageDescription').textContent = v > 0 ? 'Real, inverted and highly diminished' : 'Virtual, upright and highly diminished';
+        controls.u.disabled = true;
+        controls.f.value = Math.round(state.fMagnitude);
+        finishMediaFrame();
+        return;
+      }
+      controls.u.disabled = false;
+      const objectX = elementX - state.u*scale;
+      const objectTopY = axisY - objectHeight;
+      const imageCoordinate = state.element === 'lens' ? v : -v;
+      const rawImageX = elementX + imageCoordinate*scale;
+      const imageX = Math.max(left, Math.min(right, rawImageX));
+      const rawImageTopY = axisY - m*objectHeight;
+      const imageTopY = Math.max(28, Math.min(H-28, rawImageTopY));
+
+      if (state.element === 'lens') drawLens(f, v, objectX, objectTopY, rawImageX, rawImageTopY, status.showImage);
+      else drawMirror(f, v, objectX, objectTopY, rawImageX, rawImageTopY, status.showImage);
+      if (status.showImage && v < 0) drawEye(state.element === 'lens' ? 'right' : 'left');
+
+      if (state.customImageUrl) picture(objectX, axisY, objectTopY, 'Object', 'object');
+      else arrow(objectX, axisY, objectTopY, 'object', 'Object', 'object');
+      if (status.showImage && Number.isFinite(v)) {
+        const imageLabel = Math.abs(rawImageX-imageX) > 1 ? 'Image (off-scale)' : 'Image';
+        if (state.customImageUrl) picture(imageX, axisY, imageTopY, imageLabel, 'image', v < 0);
+        else arrow(imageX, axisY, imageTopY, 'image', imageLabel, 'image');
+      }
+
+      $('uOutput').textContent = `${Math.round(state.u)} cm`;
+      $('fOutput').textContent = `${Math.round(state.fMagnitude)} cm`;
+      $('uValue').textContent = `${state.u.toFixed(1).replace('.0','')} cm`;
+      $('fValue').textContent = signed(f);
+      $('vValue').textContent = status.showImage ? (Number.isFinite(v) ? signed(v) : '∞') : '—';
+      $('mValue').textContent = status.showImage ? (Number.isFinite(m) ? `${m >= 0 ? '+' : '−'}${Math.abs(m).toFixed(2)}` : '∞') : '—';
+      $('imageDescription').textContent = status.showImage ? imageWords(v, m) : 'Select at least two rays to locate the image';
+      controls.u.value = Math.round(state.u);
+      controls.f.value = Math.round(state.fMagnitude);
+      finishMediaFrame();
+    }
+
+    function setSegment(control, value) {
+      control.querySelectorAll('button').forEach(btn => btn.classList.toggle('active', btn.dataset.value === value));
+    }
+
+    controls.element.addEventListener('click', e => {
+      if (!e.target.dataset.value) return;
+      state.element = e.target.dataset.value;
+      if (state.element === 'lens') {
+        state.rays.delete(4);
+        controls.rays.querySelector('[data-ray="4"]').checked = false;
+      }
+      setSegment(controls.element, state.element);
+      render();
+    });
+
+    controls.shape.addEventListener('click', e => {
+      if (!e.target.dataset.value) return;
+      state.shape = e.target.dataset.value;
+      setSegment(controls.shape, state.shape);
+      render();
+    });
+
+    controls.cases.addEventListener('click', e => {
+      if (!e.target.dataset.case) return;
+      applyCase(e.target.dataset.case);
+      render();
+    });
+    controls.rays.addEventListener('change', e => {
+      if (!e.target.dataset.ray) return;
+      const rayNumber = +e.target.dataset.ray;
+      if (e.target.checked) state.rays.add(rayNumber);
+      else state.rays.delete(rayNumber);
+      render();
+    });
+    controls.u.addEventListener('input', e => {
+      state.u = +e.target.value;
+      markCustomCase();
+      render();
+    });
+    controls.f.addEventListener('input', e => {
+      state.fMagnitude = +e.target.value;
+      if (state.caseId !== 'custom') applyCase(state.caseId);
+      render();
+    });
+
+    const uploadInput = $('objectImageUpload');
+    const removeImageButton = $('removeObjectImage');
+    const uploadStatus = $('uploadStatus');
+    const allowedImageTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+
+    async function makeGifLoopForever(file) {
+      const source = new Uint8Array(await file.arrayBuffer());
+      const signature = String.fromCharCode(...source.slice(0, 6));
+      if (signature !== 'GIF87a' && signature !== 'GIF89a') return file;
+
+      const applicationNames = ['NETSCAPE2.0', 'ANIMEXTS1.0'];
+      for (const name of applicationNames) {
+        const bytes = [...name].map(character => character.charCodeAt(0));
+        for (let start = 0; start <= source.length-bytes.length; start++) {
+          if (!bytes.every((byte, offset) => source[start+offset] === byte)) continue;
+          const loopLow = start+13;
+          const loopHigh = start+14;
+          if (loopHigh < source.length && source[start+11] === 3 && source[start+12] === 1) {
+            const patched = source.slice();
+            patched[loopLow] = 0;
+            patched[loopHigh] = 0;
+            return new Blob([patched], { type: 'image/gif' });
+          }
+        }
+      }
+
+      // Add the standard infinite-loop application extension if the GIF has none.
+      const packedField = source[10];
+      const globalColourTableSize = packedField & 0x80 ? 3*(2**((packedField & 0x07)+1)) : 0;
+      const insertAt = 13+globalColourTableSize;
+      if (insertAt > source.length) return file;
+      const loopExtension = new Uint8Array([
+        0x21, 0xff, 0x0b,
+        ...[...'NETSCAPE2.0'].map(character => character.charCodeAt(0)),
+        0x03, 0x01, 0x00, 0x00, 0x00
+      ]);
+      const patched = new Uint8Array(source.length+loopExtension.length);
+      patched.set(source.slice(0, insertAt), 0);
+      patched.set(loopExtension, insertAt);
+      patched.set(source.slice(insertAt), insertAt+loopExtension.length);
+      return new Blob([patched], { type: 'image/gif' });
+    }
+
+    uploadInput.addEventListener('change', async () => {
+      const file = uploadInput.files && uploadInput.files[0];
+      if (!file) return;
+      if (!allowedImageTypes.has(file.type)) {
+        uploadStatus.textContent = 'Please choose a PNG, JPG, WebP or GIF file.';
+        uploadInput.value = '';
+        return;
+      }
+      if (file.size > 8*1024*1024) {
+        uploadStatus.textContent = 'That file is larger than 8 MB. Please choose a smaller file.';
+        uploadInput.value = '';
+        return;
+      }
+
+      const displayFile = file.type === 'image/gif' ? await makeGifLoopForever(file) : file;
+      const nextUrl = URL.createObjectURL(displayFile);
+      const probe = new Image();
+      probe.onload = () => {
+        if (state.customImageUrl) URL.revokeObjectURL(state.customImageUrl);
+        state.customImageUrl = nextUrl;
+        state.customImageName = file.name;
+        state.customImageAspect = probe.naturalWidth/probe.naturalHeight || 1;
+        mediaNodes.object.src = nextUrl;
+        mediaNodes.image.src = nextUrl;
+        uploadStatus.textContent = file.type === 'image/gif'
+          ? `${file.name} · looping continuously · displayed locally`
+          : `${file.name} · displayed locally`;
+        removeImageButton.hidden = false;
+        render();
+      };
+      probe.onerror = () => {
+        URL.revokeObjectURL(nextUrl);
+        uploadStatus.textContent = 'This image could not be displayed. Please try another file.';
+        uploadInput.value = '';
+      };
+      probe.src = nextUrl;
+    });
+
+    removeImageButton.addEventListener('click', () => {
+      if (state.customImageUrl) URL.revokeObjectURL(state.customImageUrl);
+      state.customImageUrl = null;
+      state.customImageName = '';
+      state.customImageAspect = 1;
+      mediaNodes.object.removeAttribute('src');
+      mediaNodes.image.removeAttribute('src');
+      uploadInput.value = '';
+      removeImageButton.hidden = true;
+      uploadStatus.textContent = 'PNG, JPG, WebP or GIF · maximum 8 MB';
+      render();
+    });
+
+    $('reset').addEventListener('click', () => {
+      Object.assign(state, { element: 'lens', shape: 'convex', u: 150, fMagnitude: 60, caseId: 'beyond2f', rays: new Set([1, 2]) });
+      controls.rays.querySelectorAll('[data-ray]').forEach(input => input.checked = input.dataset.ray === '1' || input.dataset.ray === '2');
+      setSegment(controls.element, state.element); setSegment(controls.shape, state.shape);
+      applyCase('beyond2f');
+      render();
+    });
+
+    function svgX(event) {
+      const point = svg.createSVGPoint(); point.x = event.clientX; point.y = event.clientY;
+      return point.matrixTransform(svg.getScreenCTM().inverse()).x;
+    }
+
+    svg.addEventListener('pointerdown', e => {
+      const target = e.target.closest('[data-drag]');
+      if (!target) return;
+      dragging = target.dataset.drag;
+      svg.setPointerCapture(e.pointerId);
+    });
+
+    svg.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const x = svgX(e);
+      if (dragging === 'object') {
+        state.u = Math.max(10, Math.min(260, (elementX-x)/scale));
+        markCustomCase();
+      } else {
+        const { f } = values();
+        const coordinate = (x-elementX)/scale;
+        const desiredV = state.element === 'lens' ? coordinate : -coordinate;
+        const denominator = desiredV - f;
+        if (Math.abs(denominator) > .5) {
+          const candidateU = f*desiredV/denominator;
+          if (candidateU >= 10 && candidateU <= 260) {
+            state.u = candidateU;
+            markCustomCase();
+          }
+        }
+      }
+      render();
+    });
+
+    svg.addEventListener('pointerup', () => dragging = null);
+    svg.addEventListener('pointercancel', () => dragging = null);
+    render();
+
+  </script>
+</body>
+</html>
