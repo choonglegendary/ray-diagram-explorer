@@ -134,10 +134,10 @@
         <label for="objectDistance"><span>Adjust object distance, u</span><span>Drag O or I directly</span></label><div class="range-row"><input id="objectDistance" type="range" min="5" max="600" step="1" value="600"><output id="uOutput">600 cm</output></div>
         <div class="image-upload">
           <span class="image-upload-title">Point appearance</span>
-          <label class="upload-button">Use image, sticker or GIF<input id="objectImageUpload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+          <label class="upload-button">Use image or GIF<input id="objectImageUpload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
           <button class="use-point-button" id="removeObjectImage" type="button" hidden>Use points</button>
           <span class="upload-status" id="uploadStatus">PNG, JPG, WebP or GIF · maximum 8 MB</span>
-          <div class="scene-picker" id="builtInScenes" aria-label="Built-in animated stickers"><span>Stickers</span><button class="scene-button" type="button" data-scene="1">1</button><button class="scene-button" type="button" data-scene="2">2</button><button class="scene-button" type="button" data-scene="3">3</button><button class="scene-button" type="button" data-scene="4">4</button><button class="scene-button" type="button" data-scene="5">5</button><button class="scene-button" type="button" data-scene="6">6</button><button class="scene-button" type="button" data-scene="7">7</button><button class="scene-button" type="button" data-scene="8">8</button></div>
+          <div class="scene-picker" id="builtInScenes" aria-label="Built-in animated scenes"><span>Scenes</span><button class="scene-button" type="button" data-scene="1">1</button><button class="scene-button" type="button" data-scene="2">2</button><button class="scene-button" type="button" data-scene="3">3</button><button class="scene-button" type="button" data-scene="4">4</button><button class="scene-button" type="button" data-scene="5">5</button><button class="scene-button" type="button" data-scene="6">6</button><button class="scene-button" type="button" data-scene="7">7</button><button class="scene-button" type="button" data-scene="8">8</button></div>
         </div>
       </div>
       <div class="readout" aria-live="polite">
@@ -269,8 +269,8 @@
     });
     scenePicker.addEventListener('click',async event=>{
       const button=event.target.closest('[data-scene]');if(!button)return;
-      const sceneNumber=+button.dataset.scene,buttons=[...scenePicker.querySelectorAll('[data-scene]')];buttons.forEach(item=>item.disabled=true);uploadStatus.textContent=`Loading sticker ${sceneNumber}…`;
-      try{const response=await fetch(`assets/scenes/scene-${sceneNumber}.gif`);if(!response.ok)throw new Error(`HTTP ${response.status}`);await displayMediaBlob(await makeGifLoopForever(await response.blob()),`Sticker ${sceneNumber} · looping continuously`,sceneNumber);uploadInput.value='';}catch(error){uploadStatus.textContent=`Sticker ${sceneNumber} could not be loaded.`;}finally{buttons.forEach(item=>item.disabled=false);}
+      const sceneNumber=+button.dataset.scene,buttons=[...scenePicker.querySelectorAll('[data-scene]')];buttons.forEach(item=>item.disabled=true);uploadStatus.textContent=`Loading scene ${sceneNumber}…`;
+      try{const response=await fetch(`assets/scenes/scene-${sceneNumber}.gif`);if(!response.ok)throw new Error(`HTTP ${response.status}`);await displayMediaBlob(await makeGifLoopForever(await response.blob()),`Scene ${sceneNumber} · looping continuously`,sceneNumber);uploadInput.value='';}catch(error){uploadStatus.textContent=`Scene ${sceneNumber} could not be loaded.`;}finally{buttons.forEach(item=>item.disabled=false);}
     });
     removeImageButton.addEventListener('click',()=>{
       if(state.customImageUrl)URL.revokeObjectURL(state.customImageUrl);state.customImageUrl=null;state.customImageAspect=1;mediaNodes.object.removeAttribute('src');mediaNodes.image.removeAttribute('src');uploadInput.value='';removeImageButton.hidden=true;markSelectedScene(0);uploadStatus.textContent='PNG, JPG, WebP or GIF · maximum 8 MB';render();
