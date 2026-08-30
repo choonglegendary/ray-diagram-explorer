@@ -40,3 +40,7 @@ Then visit <http://localhost:8000>.
 The optical element is intentionally drawn as a single vertical line so students focus on ray behaviour.
 
 The spherical-refraction page covers convex and concave interfaces, adjustable refractive indices, radius of curvature, directly draggable object/image points, real or virtual axial point images, and optional uploaded or built-in animated scenes scaled by the calculated lateral magnification.
+
+The plane-surface page includes plane reflection and plane refraction, normal construction, virtual ray tracing, directly draggable points, and the shared image/GIF scene controls.
+
+The refracting-sphere page traces axial and oblique rays through both spherical surfaces, draws a normal at each interface, and calculates the final image and total transverse magnification.
