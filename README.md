@@ -44,5 +44,3 @@ The spherical-refraction page covers convex and concave interfaces, adjustable r
 The plane-surface page includes plane reflection and plane refraction, normal construction, virtual ray tracing, directly draggable points, and the shared image/GIF scene controls.
 
 The refracting-sphere page traces axial and oblique rays through both spherical surfaces, draws a normal at each interface, and calculates the final image and total transverse magnification.
-
-The Wave Lab animates progressive-wave superposition, standing waves on a fixed string, and displacement modes in open–open or closed–open air columns.
