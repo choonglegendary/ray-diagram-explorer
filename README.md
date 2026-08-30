@@ -39,4 +39,4 @@ Then visit <http://localhost:8000>.
 
 The optical element is intentionally drawn as a single vertical line so students focus on ray behaviour.
 
-The spherical-refraction page covers convex and concave interfaces, adjustable refractive indices, radius of curvature, object distance, and real or virtual axial point images.
+The spherical-refraction page covers convex and concave interfaces, adjustable refractive indices, radius of curvature, draggable object/image points, real or virtual axial point images, and optional uploaded or built-in animated stickers.
