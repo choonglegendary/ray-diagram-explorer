@@ -15,6 +15,8 @@ Then visit <http://localhost:8000>.
 
 ## Included
 
+- Separate Mirror & Lens and Spherical Refraction simulation pages
+
 - Convex and concave thin lenses
 - Concave and convex curved mirrors
 - Three principal-ray rules, with dashed virtual extensions
@@ -36,3 +38,5 @@ Then visit <http://localhost:8000>.
 - Live image distance, magnification, orientation, size and real/virtual classification
 
 The optical element is intentionally drawn as a single vertical line so students focus on ray behaviour.
+
+The spherical-refraction page covers convex and concave interfaces, adjustable refractive indices, radius of curvature, object distance, real/virtual images, and paraxial magnification.

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spherical Refraction Explorer | Legendary Six</title>
+  <style>
+    :root {
+      --ink:#302027; --muted:#75636a; --line:#eadfd8; --paper:#fff; --page:#faf5ef;
+      --brand:#a52249; --brand-dark:#7f1737; --gold:#ffdc7a; --cream:#fff9eb;
+      --red:#e34343; --blue:#2864dc; --green:#168568; --amber:#cf7a13;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; overflow-x:hidden; color:var(--ink); background:var(--page); font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .app { width:min(1180px,calc(100% - 32px)); margin:28px auto; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:18px 22px; margin-bottom:12px; color:var(--cream); background:linear-gradient(135deg,var(--brand-dark),var(--brand)); border-radius:18px; box-shadow:0 12px 30px rgba(127,23,55,.18); }
+    .brand-lockup { display:flex; align-items:center; gap:16px; }
+    .brand-logo { width:76px; height:76px; border:3px solid rgba(255,220,122,.72); border-radius:17px; object-fit:cover; box-shadow:0 5px 15px rgba(55,5,22,.2); }
+    .brand-name { display:block; margin-bottom:2px; color:var(--gold); font-size:12px; font-weight:850; letter-spacing:.16em; text-transform:uppercase; }
+    .brand-contact { display:flex; flex-wrap:wrap; gap:5px 10px; margin-top:4px; color:#f7dfe6; font-size:12px; font-weight:650; }
+    .brand-contact .phone { color:var(--gold); }
+    h1 { margin:0; font-size:clamp(24px,3vw,36px); letter-spacing:-.03em; }
+    .site-nav { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+    .site-nav a { padding:9px 13px; border:1px solid var(--line); border-radius:10px; color:var(--brand-dark); background:white; font-size:13px; font-weight:750; text-decoration:none; }
+    .site-nav a.active { color:white; border-color:var(--brand); background:var(--brand); }
+    .card { background:var(--paper); border:1px solid var(--line); border-radius:16px; box-shadow:0 10px 32px rgba(91,43,57,.07); }
+    .controls { display:grid; grid-template-columns:1fr 1.15fr 1.15fr 1.15fr auto; gap:14px; align-items:end; padding:18px; margin-bottom:14px; }
+    .field > label,.field-label { display:block; margin-bottom:7px; color:var(--muted); font-size:12px; font-weight:750; letter-spacing:.04em; text-transform:uppercase; }
+    .segmented { display:grid; grid-template-columns:1fr 1fr; padding:3px; border:1px solid var(--line); border-radius:10px; background:#f8f5f5; }
+    button { font:inherit; cursor:pointer; }
+    .segmented button { min-height:42px; padding:9px 10px; border:0; border-radius:7px; color:var(--muted); background:transparent; font-weight:750; }
+    .segmented button.active { color:var(--ink); background:white; box-shadow:0 1px 5px rgba(25,35,55,.13); }
+    .range-row { display:flex; align-items:center; gap:9px; }
+    input[type=range] { width:100%; accent-color:var(--brand); cursor:pointer; }
+    output { min-width:58px; text-align:right; font-variant-numeric:tabular-nums; font-weight:750; }
+    .reset { min-height:42px; padding:9px 13px; border:1px solid var(--line); border-radius:8px; color:var(--brand-dark); background:white; font-weight:750; }
+    .cases { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 18px; border-bottom:1px solid var(--line); }
+    .cases > span { margin-right:3px; color:var(--muted); font-size:12px; font-weight:750; }
+    .case-button { min-height:40px; padding:7px 11px; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:white; font-size:13px; font-weight:750; }
+    .case-button.active { color:white; border-color:var(--brand); background:var(--brand); }
+    .diagram { width:100%; overflow:hidden; }
+    svg { display:block; width:100%; height:auto; aspect-ratio:1100/560; touch-action:pan-y; user-select:none; }
+    .axis { stroke:#5e687a; stroke-width:1.7; }
+    .surface { fill:none; stroke:var(--brand-dark); stroke-width:4; stroke-linecap:round; }
+    .tick { stroke:#5e687a; stroke-width:1.5; }
+    .ray { fill:none; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
+    .ray-red { stroke:var(--red); } .ray-blue { stroke:var(--blue); }
+    .virtual { fill:none; stroke:#98a1b2; stroke-width:2.1; stroke-dasharray:7 6; }
+    .object { stroke:var(--green); fill:var(--green); } .image { stroke:var(--amber); fill:var(--amber); }
+    .arrow-line { stroke-width:5; stroke-linecap:round; }
+    .svg-label { fill:#574850; font-size:13px; font-weight:700; paint-order:stroke; stroke:white; stroke-width:4px; stroke-linejoin:round; }
+    .object-label { fill:var(--green); } .image-label { fill:var(--amber); }
+    .medium-label { fill:var(--brand-dark); font-size:15px; font-weight:800; paint-order:stroke; stroke:white; stroke-width:5px; }
+    .eye-outline { fill:var(--cream); stroke:var(--brand-dark); stroke-width:3; } .eye-iris { fill:var(--gold); stroke:var(--brand-dark); stroke-width:2; } .eye-pupil { fill:var(--brand-dark); }
+    .u-control { padding:14px 18px 16px; border-top:1px solid var(--line); background:#fffaf7; }
+    .u-control label { display:flex; justify-content:space-between; gap:10px; max-width:780px; margin:0 auto 7px; color:var(--muted); font-size:12px; font-weight:750; letter-spacing:.04em; text-transform:uppercase; }
+    .u-control .range-row { max-width:780px; margin:auto; }
+    .readout { display:grid; grid-template-columns:repeat(5,1fr) 2fr; border-top:1px solid var(--line); }
+    .datum { padding:14px 16px; border-right:1px solid var(--line); }
+    .datum:last-child { border-right:0; }
+    .datum span { display:block; color:var(--muted); font-size:12px; }
+    .datum strong { display:block; margin-top:3px; font-size:17px; font-variant-numeric:tabular-nums; }
+    .description strong { color:var(--brand); font-size:14px; }
+    @media(max-width:860px){
+      .controls { grid-template-columns:1fr 1fr; }
+      .controls .field:nth-child(n+3),.reset { grid-column:1/-1; }
+      .readout { grid-template-columns:repeat(2,1fr); }
+      .description { grid-column:1/-1; }
+      .datum:nth-child(2n) { border-right:0; }
+      .description { border-right:0; }
+    }
+    @media(max-width:620px){
+      .app { width:calc(100% - 16px); margin:12px auto; }
+      header { padding:14px; }
+      .brand-logo { width:58px; height:58px; border-radius:13px; }
+      h1 { font-size:22px; }
+      .controls { gap:12px; padding:14px; }
+      .cases { padding:10px 14px; }
+      .case-button { flex:1 1 calc(50% - 8px); }
+      .u-control { padding:13px 14px 15px; }
+      .datum { padding:11px 13px; }
+      .datum strong { font-size:15px; }
+      svg .ray { stroke-width:4; } svg .virtual { stroke-width:3.2; } svg .axis { stroke-width:2.4; } svg .surface { stroke-width:5; } svg .svg-label { font-size:20px; stroke-width:6px; } svg .medium-label { font-size:20px; stroke-width:7px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand-lockup">
+        <img class="brand-logo" src="assets/legendary-six-logo.jpg" alt="Legendary Six logo">
+        <div><span class="brand-name">Legendary Six</span><h1>Spherical Refraction Explorer</h1><div class="brand-contact"><span>Mr. Choong</span><span class="phone">016-484 0556</span></div></div>
+      </div>
+    </header>
+    <nav class="site-nav" aria-label="Simulation pages">
+      <a href="index.html">Mirror &amp; Lens</a>
+      <a class="active" href="spherical-refraction.html">Spherical Refraction</a>
+    </nav>
+
+    <section class="controls card" aria-label="Refraction controls">
+      <div class="field"><span class="field-label">Surface seen by object</span><div class="segmented" id="shapeControl"><button class="active" data-value="convex">Convex</button><button data-value="concave">Concave</button></div></div>
+      <div class="field"><label for="n1">First medium, n₁</label><div class="range-row"><input id="n1" type="range" min="1" max="2" step="0.05" value="1"><output id="n1Output">1.00</output></div></div>
+      <div class="field"><label for="n2">Second medium, n₂</label><div class="range-row"><input id="n2" type="range" min="1" max="2" step="0.05" value="1.50"><output id="n2Output">1.50</output></div></div>
+      <div class="field"><label for="radius">Radius, |R|</label><div class="range-row"><input id="radius" type="range" min="80" max="180" step="5" value="120"><output id="rOutput">120 cm</output></div></div>
+      <button class="reset" id="reset">Reset</button>
+    </section>
+
+    <section class="card">
+      <div class="cases" id="caseControl"><span>Quick cases</span><button class="case-button active" data-case="convex-higher">Convex · n₁ &lt; n₂</button><button class="case-button" data-case="convex-lower">Convex · n₁ &gt; n₂</button><button class="case-button" data-case="concave-higher">Concave · n₁ &lt; n₂</button><button class="case-button" data-case="concave-lower">Concave · n₁ &gt; n₂</button></div>
+      <div class="diagram"><svg id="diagram" viewBox="0 0 1100 560" role="img" aria-label="Refraction at a spherical surface ray diagram"></svg></div>
+      <div class="u-control"><label for="objectDistance"><span>Adjust object distance, u</span><span>Move the object</span></label><div class="range-row"><input id="objectDistance" type="range" min="50" max="650" step="1" value="600"><output id="uOutput">600 cm</output></div></div>
+      <div class="readout" aria-live="polite">
+        <div class="datum"><span>Object, u</span><strong id="uValue">600 cm</strong></div><div class="datum"><span>Radius, R</span><strong id="rValue">+120 cm</strong></div><div class="datum"><span>Image, v</span><strong id="vValue">—</strong></div><div class="datum"><span>Magnification, m</span><strong id="mValue">—</strong></div><div class="datum"><span>Power</span><strong id="powerValue">—</strong></div><div class="datum description"><span>Image formed</span><strong id="description">—</strong></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const svg=document.querySelector('#diagram');
+    const state={shape:'convex',n1:1,n2:1.5,Rmag:120,u:600,caseId:'convex-higher'};
+    const W=1100,H=560,axisY=290,surfaceX=550,scale=.85,objectHeight=60,left=28,right=W-28;
+    const $=id=>document.getElementById(id);
+
+    function values(){
+      const R=(state.shape==='convex'?1:-1)*state.Rmag;
+      const power=(state.n2-state.n1)/R;
+      const denominator=power-state.n1/state.u;
+      const v=Math.abs(denominator)<1e-5?(denominator>=0?Infinity:-Infinity):state.n2/denominator;
+      const m=Number.isFinite(v)?-state.n1*v/(state.n2*state.u):(v>0?-Infinity:Infinity);
+      return {R,power,v,m};
+    }
+    function el(name,attrs={},text=''){const node=document.createElementNS('http://www.w3.org/2000/svg',name);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));if(text)node.textContent=text;svg.appendChild(node);return node;}
+    function line(x1,y1,x2,y2,cls){if(![x1,y1,x2,y2].every(Number.isFinite))return;if(cls.includes('ray-red')||cls.includes('ray-blue')){const marker=cls.includes('ray-red')?'redArrow':'blueArrow';el('polyline',{points:`${x1},${y1} ${(x1+x2)/2},${(y1+y2)/2} ${x2},${y2}`,class:cls,'marker-mid':`url(#${marker})`});}else el('line',{x1,y1,x2,y2,class:cls});}
+    function clipped(x,y,dx,dy){const ts=[];if(dx>0)ts.push((right-x)/dx);if(dx<0)ts.push((left-x)/dx);if(dy>0)ts.push((H-24-y)/dy);if(dy<0)ts.push((24-y)/dy);const t=Math.min(...ts.filter(v=>v>0));return[x+dx*t,y+dy*t];}
+    function arrow(x,base,tip,cls,label){const direction=tip<base?-1:1;line(x,base,x,tip,`${cls} arrow-line`);el('polygon',{points:`${x},${tip} ${x-8},${tip-direction*15} ${x+8},${tip-direction*15}`,class:cls});el('text',{x:x+11,y:tip+(direction<0?-10:20),class:`svg-label ${cls}-label`},label);}
+    function eye(){const g=el('g',{transform:`translate(${right-50} 82)`});const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d','M -31 0 Q 0 -23 31 0 Q 0 23 -31 0 Z');p.setAttribute('class','eye-outline');g.appendChild(p);for(const [r,c] of [[11,'eye-iris'],[4.5,'eye-pupil']]){const q=document.createElementNS('http://www.w3.org/2000/svg','circle');q.setAttribute('cx','-5');q.setAttribute('cy','0');q.setAttribute('r',r);q.setAttribute('class',c);g.appendChild(q);}}
+    function surfaceGeometry(R){const radius=Math.abs(R)*scale,cx=surfaceX+R*scale,half=Math.min(205,radius*.9),points=[];for(let y=axisY-half;y<=axisY+half;y+=5){const dy=y-axisY,x=cx-Math.sign(R)*Math.sqrt(Math.max(0,radius*radius-dy*dy));points.push(`${x},${y}`);}return{radius,cx,half,points:points.join(' ')}};
+    function surfaceXAtY(y,R,g){const dy=y-axisY;return g.cx-Math.sign(R)*Math.sqrt(Math.max(0,g.radius*g.radius-dy*dy));}
+    function centreRayHit(objectX,objectY,g){const dx=objectX-g.cx,dy=objectY-axisY,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;const candidates=[[g.cx+ux*g.radius,axisY+uy*g.radius],[g.cx-ux*g.radius,axisY-uy*g.radius]];return candidates.sort((a,b)=>Math.abs(a[0]-surfaceX)-Math.abs(b[0]-surfaceX))[0];}
+    function base(R,g){
+      svg.innerHTML='';const defs=el('defs');[['redArrow','#e34343'],['blueArrow','#2864dc']].forEach(([id,color])=>{const m=document.createElementNS('http://www.w3.org/2000/svg','marker');Object.entries({id,viewBox:'0 0 10 8',refX:5,refY:4,markerWidth:10,markerHeight:8,markerUnits:'userSpaceOnUse',orient:'auto'}).forEach(([k,v])=>m.setAttribute(k,v));const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d','M0 0 L10 4 L0 8 Z');p.setAttribute('fill',color);m.appendChild(p);defs.appendChild(m);});
+      line(22,axisY,W-22,axisY,'axis');el('polyline',{points:g.points,class:'surface'});
+      const cX=surfaceX+R*scale;if(cX>left&&cX<right){line(cX,axisY-8,cX,axisY+8,'tick');el('text',{x:cX,y:axisY+28,'text-anchor':'middle',class:'svg-label'},'C');}
+      line(surfaceX,axisY-8,surfaceX,axisY+8,'tick');el('text',{x:surfaceX,y:axisY+28,'text-anchor':'middle',class:'svg-label'},'P');
+      el('text',{x:145,y:72,class:'medium-label'},`n₁ = ${state.n1.toFixed(2)}`);el('text',{x:820,y:72,class:'medium-label'},`n₂ = ${state.n2.toFixed(2)}`);
+      const firstRelation=state.n1===state.n2?'same refractive index':state.n1>state.n2?'higher refractive index':'lower refractive index';
+      const secondRelation=state.n1===state.n2?'same refractive index':state.n2>state.n1?'higher refractive index':'lower refractive index';
+      el('text',{x:145,y:99,class:'svg-label'},firstRelation);el('text',{x:820,y:99,class:'svg-label'},secondRelation);
+    }
+    function render(){
+      const {R,power,v,m}=values(),g=surfaceGeometry(R);base(R,g);
+      const objectX=surfaceX-state.u*scale,objectY=axisY-objectHeight;
+      const imageCoordX=surfaceX+v*scale,rawImageY=axisY-m*objectHeight;
+      const imageX=Math.max(left,Math.min(right,imageCoordX)),imageY=Math.max(28,Math.min(H-28,rawImageY));
+
+      const hit=centreRayHit(objectX,objectY,g),slopeC=(hit[1]-objectY)/(hit[0]-objectX);
+      const parallelHitX=surfaceXAtY(objectY,R,g);
+      line(objectX,objectY,parallelHitX,objectY,'ray ray-red');
+      if(Number.isFinite(v)){
+        const slope=(rawImageY-objectY)/(imageCoordX-parallelHitX),end=clipped(parallelHitX,objectY,1,slope);line(parallelHitX,objectY,end[0],end[1],'ray ray-red');if(v<0)line(parallelHitX,objectY,imageCoordX,rawImageY,'virtual');
+      }else{const end=clipped(parallelHitX,objectY,1,slopeC);line(parallelHitX,objectY,end[0],end[1],'ray ray-red');}
+      const endC=clipped(hit[0],hit[1],1,slopeC);line(objectX,objectY,hit[0],hit[1],'ray ray-blue');line(hit[0],hit[1],endC[0],endC[1],'ray ray-blue');
+      if(v<0&&Number.isFinite(v))line(hit[0],hit[1],imageCoordX,rawImageY,'virtual');
+      arrow(objectX,axisY,objectY,'object','Object');if(Number.isFinite(v))arrow(imageX,axisY,imageY,'image',Math.abs(imageCoordX-imageX)>1?'Image (off-scale)':'Image');if(v<0)eye();
+
+      $('n1Output').textContent=state.n1.toFixed(2);$('n2Output').textContent=state.n2.toFixed(2);$('rOutput').textContent=`${state.Rmag} cm`;$('uOutput').textContent=`${Math.round(state.u)} cm`;
+      $('uValue').textContent=`${Math.round(state.u)} cm`;$('rValue').textContent=`${R>=0?'+':'−'}${Math.abs(R)} cm`;$('vValue').textContent=Number.isFinite(v)?`${v>=0?'+':'−'}${Math.abs(v).toFixed(1)} cm`:'∞';$('mValue').textContent=Number.isFinite(m)?`${m>=0?'+':'−'}${Math.abs(m).toFixed(2)}`:'∞';$('powerValue').textContent=`${power>=0?'+':'−'}${Math.abs(power).toFixed(4)} cm⁻¹`;
+      if(!Number.isFinite(v))$('description').textContent='Image at infinity';else{const reality=v>0?'Real':'Virtual',orientation=m<0?'inverted':'upright',size=Math.abs(m)>1.03?'magnified':Math.abs(m)<.97?'diminished':'same size';$('description').textContent=`${reality}, ${orientation} and ${size}`;}
+    }
+    function setShape(value){state.shape=value;document.querySelectorAll('#shapeControl button').forEach(b=>b.classList.toggle('active',b.dataset.value===value));}
+    function custom(){state.caseId='custom';document.querySelectorAll('.case-button').forEach(b=>b.classList.remove('active'));}
+    $('shapeControl').addEventListener('click',e=>{if(!e.target.dataset.value)return;setShape(e.target.dataset.value);custom();render();});
+    ['n1','n2','radius','objectDistance'].forEach(id=>$(id).addEventListener('input',e=>{if(id==='n1')state.n1=+e.target.value;if(id==='n2')state.n2=+e.target.value;if(id==='radius')state.Rmag=+e.target.value;if(id==='objectDistance')state.u=+e.target.value;custom();render();}));
+    $('caseControl').addEventListener('click',e=>{const id=e.target.dataset.case;if(!id)return;state.caseId=id;const [shape,relation]=id.split('-');setShape(shape);if(relation==='higher'){state.n1=1;state.n2=1.5;}else{state.n1=1.5;state.n2=1;}$('n1').value=state.n1;$('n2').value=state.n2;document.querySelectorAll('.case-button').forEach(b=>b.classList.toggle('active',b.dataset.case===id));render();});
+    $('reset').addEventListener('click',()=>{Object.assign(state,{shape:'convex',n1:1,n2:1.5,Rmag:120,u:600,caseId:'convex-higher'});setShape('convex');$('n1').value=1;$('n2').value=1.5;$('radius').value=120;$('objectDistance').value=600;document.querySelectorAll('.case-button').forEach(b=>b.classList.toggle('active',b.dataset.case==='convex-higher'));render();});
+    render();
+  </script>
+</body>
+</html>
