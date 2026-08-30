@@ -55,7 +55,7 @@
     .u-control { padding:14px 18px 16px; border-top:1px solid var(--line); background:#fffaf7; }
     .u-control label { display:flex; justify-content:space-between; gap:10px; max-width:780px; margin:0 auto 7px; color:var(--muted); font-size:12px; font-weight:750; letter-spacing:.04em; text-transform:uppercase; }
     .u-control .range-row { max-width:780px; margin:auto; }
-    .readout { display:grid; grid-template-columns:repeat(5,1fr) 2fr; border-top:1px solid var(--line); }
+    .readout { display:grid; grid-template-columns:repeat(4,1fr) 2fr; border-top:1px solid var(--line); }
     .datum { padding:14px 16px; border-right:1px solid var(--line); }
     .datum:last-child { border-right:0; }
     .datum span { display:block; color:var(--muted); font-size:12px; }
@@ -108,16 +108,16 @@
     <section class="card">
       <div class="cases" id="caseControl"><span>Quick cases</span><button class="case-button active" data-case="convex-higher">Convex · n₁ &lt; n₂</button><button class="case-button" data-case="convex-lower">Convex · n₁ &gt; n₂</button><button class="case-button" data-case="concave-higher">Concave · n₁ &lt; n₂</button><button class="case-button" data-case="concave-lower">Concave · n₁ &gt; n₂</button></div>
       <div class="diagram"><svg id="diagram" viewBox="0 0 1100 560" role="img" aria-label="Refraction at a spherical surface ray diagram"></svg></div>
-      <div class="u-control"><label for="objectDistance"><span>Adjust object distance, u</span><span>Move the object</span></label><div class="range-row"><input id="objectDistance" type="range" min="50" max="650" step="1" value="600"><output id="uOutput">600 cm</output></div></div>
+      <div class="u-control"><label for="objectDistance"><span>Adjust object distance, u</span><span>Move point O</span></label><div class="range-row"><input id="objectDistance" type="range" min="50" max="600" step="1" value="600"><output id="uOutput">600 cm</output></div></div>
       <div class="readout" aria-live="polite">
-        <div class="datum"><span>Object, u</span><strong id="uValue">600 cm</strong></div><div class="datum"><span>Radius, R</span><strong id="rValue">+120 cm</strong></div><div class="datum"><span>Image, v</span><strong id="vValue">—</strong></div><div class="datum"><span>Magnification, m</span><strong id="mValue">—</strong></div><div class="datum"><span>Power</span><strong id="powerValue">—</strong></div><div class="datum description"><span>Image formed</span><strong id="description">—</strong></div>
+        <div class="datum"><span>Object, u</span><strong id="uValue">600 cm</strong></div><div class="datum"><span>Radius, R</span><strong id="rValue">+120 cm</strong></div><div class="datum"><span>Image, v</span><strong id="vValue">—</strong></div><div class="datum"><span>Surface power</span><strong id="powerValue">—</strong></div><div class="datum description"><span>Point image</span><strong id="description">—</strong></div>
       </div>
     </section>
   </main>
   <script>
     const svg=document.querySelector('#diagram');
     const state={shape:'convex',n1:1,n2:1.5,Rmag:120,u:600,caseId:'convex-higher'};
-    const W=1100,H=560,axisY=290,surfaceX=550,scale=.85,objectHeight=60,left=28,right=W-28;
+    const W=1100,H=560,axisY=290,surfaceX=550,scale=.85,left=28,right=W-28;
     const $=id=>document.getElementById(id);
 
     function values(){
@@ -125,17 +125,15 @@
       const power=(state.n2-state.n1)/R;
       const denominator=power-state.n1/state.u;
       const v=Math.abs(denominator)<1e-5?(denominator>=0?Infinity:-Infinity):state.n2/denominator;
-      const m=Number.isFinite(v)?-state.n1*v/(state.n2*state.u):(v>0?-Infinity:Infinity);
-      return {R,power,v,m};
+      return {R,power,v};
     }
     function el(name,attrs={},text=''){const node=document.createElementNS('http://www.w3.org/2000/svg',name);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));if(text)node.textContent=text;svg.appendChild(node);return node;}
     function line(x1,y1,x2,y2,cls){if(![x1,y1,x2,y2].every(Number.isFinite))return;if(cls.includes('ray-red')||cls.includes('ray-blue')){const marker=cls.includes('ray-red')?'redArrow':'blueArrow';el('polyline',{points:`${x1},${y1} ${(x1+x2)/2},${(y1+y2)/2} ${x2},${y2}`,class:cls,'marker-mid':`url(#${marker})`});}else el('line',{x1,y1,x2,y2,class:cls});}
     function clipped(x,y,dx,dy){const ts=[];if(dx>0)ts.push((right-x)/dx);if(dx<0)ts.push((left-x)/dx);if(dy>0)ts.push((H-24-y)/dy);if(dy<0)ts.push((24-y)/dy);const t=Math.min(...ts.filter(v=>v>0));return[x+dx*t,y+dy*t];}
-    function arrow(x,base,tip,cls,label){const direction=tip<base?-1:1;line(x,base,x,tip,`${cls} arrow-line`);el('polygon',{points:`${x},${tip} ${x-8},${tip-direction*15} ${x+8},${tip-direction*15}`,class:cls});el('text',{x:x+11,y:tip+(direction<0?-10:20),class:`svg-label ${cls}-label`},label);}
+    function point(x,cls,label,offScale=false){el('circle',{cx:x,cy:axisY,r:7,class:cls});el('text',{x,y:axisY-17,'text-anchor':'middle',class:`svg-label ${cls}-label`},offScale?`${label} (off-scale)`:label);}
     function eye(){const g=el('g',{transform:`translate(${right-50} 82)`});const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d','M -31 0 Q 0 -23 31 0 Q 0 23 -31 0 Z');p.setAttribute('class','eye-outline');g.appendChild(p);for(const [r,c] of [[11,'eye-iris'],[4.5,'eye-pupil']]){const q=document.createElementNS('http://www.w3.org/2000/svg','circle');q.setAttribute('cx','-5');q.setAttribute('cy','0');q.setAttribute('r',r);q.setAttribute('class',c);g.appendChild(q);}}
     function surfaceGeometry(R){const radius=Math.abs(R)*scale,cx=surfaceX+R*scale,half=Math.min(205,radius*.9),points=[];for(let y=axisY-half;y<=axisY+half;y+=5){const dy=y-axisY,x=cx-Math.sign(R)*Math.sqrt(Math.max(0,radius*radius-dy*dy));points.push(`${x},${y}`);}return{radius,cx,half,points:points.join(' ')}};
     function surfaceXAtY(y,R,g){const dy=y-axisY;return g.cx-Math.sign(R)*Math.sqrt(Math.max(0,g.radius*g.radius-dy*dy));}
-    function centreRayHit(objectX,objectY,g){const dx=objectX-g.cx,dy=objectY-axisY,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len;const candidates=[[g.cx+ux*g.radius,axisY+uy*g.radius],[g.cx-ux*g.radius,axisY-uy*g.radius]];return candidates.sort((a,b)=>Math.abs(a[0]-surfaceX)-Math.abs(b[0]-surfaceX))[0];}
     function base(R,g){
       svg.innerHTML='';const defs=el('defs');[['redArrow','#e34343'],['blueArrow','#2864dc']].forEach(([id,color])=>{const m=document.createElementNS('http://www.w3.org/2000/svg','marker');Object.entries({id,viewBox:'0 0 10 8',refX:5,refY:4,markerWidth:10,markerHeight:8,markerUnits:'userSpaceOnUse',orient:'auto'}).forEach(([k,v])=>m.setAttribute(k,v));const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d','M0 0 L10 4 L0 8 Z');p.setAttribute('fill',color);m.appendChild(p);defs.appendChild(m);});
       line(22,axisY,W-22,axisY,'axis');el('polyline',{points:g.points,class:'surface'});
@@ -147,24 +145,32 @@
       el('text',{x:145,y:99,class:'svg-label'},firstRelation);el('text',{x:820,y:99,class:'svg-label'},secondRelation);
     }
     function render(){
-      const {R,power,v,m}=values(),g=surfaceGeometry(R);base(R,g);
-      const objectX=surfaceX-state.u*scale,objectY=axisY-objectHeight;
-      const imageCoordX=surfaceX+v*scale,rawImageY=axisY-m*objectHeight;
-      const imageX=Math.max(left,Math.min(right,imageCoordX)),imageY=Math.max(28,Math.min(H-28,rawImageY));
+      const {R,power,v}=values(),g=surfaceGeometry(R);base(R,g);
+      const objectX=surfaceX-state.u*scale;
+      const imageCoordX=surfaceX+v*scale;
+      const imageX=Math.max(left,Math.min(right,imageCoordX));
+      const obliqueY=axisY-Math.min(58,g.half*.7);
+      const obliqueX=surfaceXAtY(obliqueY,R,g);
 
-      const hit=centreRayHit(objectX,objectY,g),slopeC=(hit[1]-objectY)/(hit[0]-objectX);
-      const parallelHitX=surfaceXAtY(objectY,R,g);
-      line(objectX,objectY,parallelHitX,objectY,'ray ray-red');
+      // An axial point is represented by one undeviated axial ray and one oblique ray.
+      line(objectX,axisY,surfaceX,axisY,'ray ray-red');
+      line(surfaceX,axisY,right,axisY,'ray ray-red');
+      line(objectX,axisY,obliqueX,obliqueY,'ray ray-blue');
       if(Number.isFinite(v)){
-        const slope=(rawImageY-objectY)/(imageCoordX-parallelHitX),end=clipped(parallelHitX,objectY,1,slope);line(parallelHitX,objectY,end[0],end[1],'ray ray-red');if(v<0)line(parallelHitX,objectY,imageCoordX,rawImageY,'virtual');
-      }else{const end=clipped(parallelHitX,objectY,1,slopeC);line(parallelHitX,objectY,end[0],end[1],'ray ray-red');}
-      const endC=clipped(hit[0],hit[1],1,slopeC);line(objectX,objectY,hit[0],hit[1],'ray ray-blue');line(hit[0],hit[1],endC[0],endC[1],'ray ray-blue');
-      if(v<0&&Number.isFinite(v))line(hit[0],hit[1],imageCoordX,rawImageY,'virtual');
-      arrow(objectX,axisY,objectY,'object','Object');if(Number.isFinite(v))arrow(imageX,axisY,imageY,'image',Math.abs(imageCoordX-imageX)>1?'Image (off-scale)':'Image');if(v<0)eye();
+        const slope=(axisY-obliqueY)/(imageCoordX-obliqueX);
+        const end=clipped(obliqueX,obliqueY,1,slope);
+        line(obliqueX,obliqueY,end[0],end[1],'ray ray-blue');
+        if(v<0)line(obliqueX,obliqueY,imageCoordX,axisY,'virtual');
+      }else{
+        line(obliqueX,obliqueY,right,obliqueY,'ray ray-blue');
+      }
+      point(objectX,'object','O');
+      if(Number.isFinite(v))point(imageX,'image','I',Math.abs(imageCoordX-imageX)>1);
+      if(v<0)eye();
 
       $('n1Output').textContent=state.n1.toFixed(2);$('n2Output').textContent=state.n2.toFixed(2);$('rOutput').textContent=`${state.Rmag} cm`;$('uOutput').textContent=`${Math.round(state.u)} cm`;
-      $('uValue').textContent=`${Math.round(state.u)} cm`;$('rValue').textContent=`${R>=0?'+':'−'}${Math.abs(R)} cm`;$('vValue').textContent=Number.isFinite(v)?`${v>=0?'+':'−'}${Math.abs(v).toFixed(1)} cm`:'∞';$('mValue').textContent=Number.isFinite(m)?`${m>=0?'+':'−'}${Math.abs(m).toFixed(2)}`:'∞';$('powerValue').textContent=`${power>=0?'+':'−'}${Math.abs(power).toFixed(4)} cm⁻¹`;
-      if(!Number.isFinite(v))$('description').textContent='Image at infinity';else{const reality=v>0?'Real':'Virtual',orientation=m<0?'inverted':'upright',size=Math.abs(m)>1.03?'magnified':Math.abs(m)<.97?'diminished':'same size';$('description').textContent=`${reality}, ${orientation} and ${size}`;}
+      $('uValue').textContent=`${Math.round(state.u)} cm`;$('rValue').textContent=`${R>=0?'+':'−'}${Math.abs(R)} cm`;$('vValue').textContent=Number.isFinite(v)?`${v>=0?'+':'−'}${Math.abs(v).toFixed(1)} cm`:'∞';$('powerValue').textContent=`${power>=0?'+':'−'}${Math.abs(power).toFixed(4)} cm⁻¹`;
+      if(!Number.isFinite(v))$('description').textContent='Point image at infinity';else $('description').textContent=v>0?'Real point image in medium n₂':'Virtual point image in medium n₁';
     }
     function setShape(value){state.shape=value;document.querySelectorAll('#shapeControl button').forEach(b=>b.classList.toggle('active',b.dataset.value===value));}
     function custom(){state.caseId='custom';document.querySelectorAll('.case-button').forEach(b=>b.classList.remove('active'));}
