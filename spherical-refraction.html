@@ -46,8 +46,8 @@
     .ray { fill:none; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
     .ray-red { stroke:var(--red); } .ray-blue { stroke:var(--blue); }
     .virtual { fill:none; stroke:#98a1b2; stroke-width:2.1; stroke-dasharray:7 6; }
-    .normal { stroke:#7e8797; stroke-width:1.8; stroke-dasharray:6 5; }
-    .incidence-point { fill:var(--brand-dark); stroke:white; stroke-width:2; }
+    .normal { stroke:#00a37a; stroke-width:2.1; stroke-dasharray:7 5; }
+    .incidence-point { fill:#00a37a; stroke:white; stroke-width:2; }
     .object { stroke:var(--green); fill:var(--green); } .image { stroke:var(--amber); fill:var(--amber); }
     .arrow-line { stroke-width:5; stroke-linecap:round; }
     .svg-label { fill:#574850; font-size:13px; font-weight:700; paint-order:stroke; stroke:white; stroke-width:4px; stroke-linejoin:round; }
@@ -110,7 +110,7 @@
     <section class="card">
       <div class="cases" id="caseControl"><span>Quick cases</span><button class="case-button active" data-case="convex-higher">Convex · n₁ &lt; n₂</button><button class="case-button" data-case="convex-lower">Convex · n₁ &gt; n₂</button><button class="case-button" data-case="concave-higher">Concave · n₁ &lt; n₂</button><button class="case-button" data-case="concave-lower">Concave · n₁ &gt; n₂</button></div>
       <div class="diagram"><svg id="diagram" viewBox="0 0 1100 560" role="img" aria-label="Refraction at a spherical surface ray diagram"></svg></div>
-      <div class="u-control"><label for="objectDistance"><span>Adjust object distance, u</span><span>Move point O</span></label><div class="range-row"><input id="objectDistance" type="range" min="50" max="600" step="1" value="600"><output id="uOutput">600 cm</output></div></div>
+      <div class="u-control"><label for="objectDistance"><span>Adjust object distance, u</span><span>Move point O</span></label><div class="range-row"><input id="objectDistance" type="range" min="5" max="600" step="1" value="600"><output id="uOutput">600 cm</output></div></div>
       <div class="readout" aria-live="polite">
         <div class="datum"><span>Object, u</span><strong id="uValue">600 cm</strong></div><div class="datum"><span>Radius, R</span><strong id="rValue">+120 cm</strong></div><div class="datum"><span>Image, v</span><strong id="vValue">—</strong></div><div class="datum"><span>Surface power</span><strong id="powerValue">—</strong></div><div class="datum description"><span>Point image</span><strong id="description">—</strong></div>
       </div>
@@ -151,11 +151,15 @@
       const objectX=surfaceX-state.u*scale;
       const imageCoordX=surfaceX+v*scale;
       const imageX=Math.max(left,Math.min(right,imageCoordX));
-      const obliqueY=axisY-Math.min(58,g.half*.7);
+      const allowedSag=Math.min(g.radius*.8,Math.max(1,state.u*scale*.55));
+      const nearSurfaceRise=Math.sqrt(Math.max(0,2*g.radius*allowedSag-allowedSag*allowedSag));
+      const obliqueY=axisY-Math.min(58,g.half*.7,nearSurfaceRise);
       const obliqueX=surfaceXAtY(obliqueY,R,g);
+      const normalDx=(obliqueX-g.cx)/g.radius,normalDy=(obliqueY-axisY)/g.radius;
+      const normalEndX=obliqueX+normalDx*82,normalEndY=obliqueY+normalDy*82;
 
       // An axial point is represented by one undeviated axial ray and one oblique ray.
-      line(obliqueX,obliqueY,g.cx,axisY,'normal');
+      line(g.cx,axisY,normalEndX,normalEndY,'normal');
       line(objectX,axisY,surfaceX,axisY,'ray ray-red');
       line(surfaceX,axisY,right,axisY,'ray ray-red');
       line(objectX,axisY,obliqueX,obliqueY,'ray ray-blue');
