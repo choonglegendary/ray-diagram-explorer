@@ -402,8 +402,8 @@
       const f = focalSign() * state.fMagnitude;
       if (!Number.isFinite(state.u)) return { f, v: f, m: 0 };
       const denominator = state.u - f;
-      const v = Math.abs(denominator) < .2 ? (f > 0 ? Infinity : -Infinity) : f * state.u / denominator;
-      return { f, v, m: Number.isFinite(v) ? -v / state.u : -Infinity };
+      const v = Math.abs(denominator) < .2 ? -Infinity : f * state.u / denominator;
+      return { f, v, m: Number.isFinite(v) ? -v / state.u : Infinity };
     }
 
     function applyCase(caseId) {
@@ -465,7 +465,7 @@
     }
 
     function picture(x, baseY, tipY, label, draggable, isVirtual = false) {
-      const height = Math.max(18, Math.abs(tipY-baseY));
+      const height = Math.abs(tipY-baseY);
       const aspect = Math.max(.25, Math.min(2.5, state.customImageAspect));
       const width = height*aspect;
       const inverted = tipY > baseY;
@@ -585,9 +585,9 @@
       return [x0 + dx*t, y0 + dy*t];
     }
 
-    function drawLens(f, v, objectX, objectTopY, imageX, imageTopY, showImage) {
+    function drawLens(f, v, u, objectX, objectTopY, imageX, imageTopY, showImage, activeRays = state.rays) {
       // Rule 1: parallel to the axis, then through/apparently from F.
-      if (state.rays.has(1)) {
+      if (activeRays.has(1)) {
         line(objectX, objectTopY, elementX, objectTopY, 'ray ray-red');
         const end1 = clippedEndpoint(elementX, objectTopY, 1, objectHeight/(f*scale));
         line(elementX, objectTopY, end1[0], end1[1], 'ray ray-red');
@@ -595,8 +595,8 @@
         if (showImage && v < 0) line(elementX, objectTopY, imageX, imageTopY, 'virtual');
       }
 
-      // Rule 2: through/toward F, then parallel. It is undefined at u = F.
-      if (state.rays.has(2) && Number.isFinite(v)) {
+      // Rule 2: through/toward F, then parallel.
+      if (activeRays.has(2) && Number.isFinite(v)) {
         const nearFocusX = elementX - f*scale;
         const ray2Y = objectTopY + (elementX-objectX) * (axisY-objectTopY) / (nearFocusX-objectX);
         line(objectX, objectTopY, elementX, ray2Y, 'ray ray-blue');
@@ -607,24 +607,25 @@
       }
 
       // Rule 3: through the optical centre without deviation.
-      if (state.rays.has(3)) {
+      if (activeRays.has(3)) {
         line(objectX, objectTopY, elementX, axisY, 'ray ray-purple');
-        const end3 = clippedEndpoint(elementX, axisY, 1, objectHeight/(state.u*scale));
+        const end3 = clippedEndpoint(elementX, axisY, 1, objectHeight/(u*scale));
         line(elementX, axisY, end3[0], end3[1], 'ray ray-purple');
+        if (showImage && v < 0) line(elementX, axisY, imageX, imageTopY, 'virtual');
       }
     }
 
-    function drawMirror(f, v, objectX, objectTopY, imageX, imageTopY, showImage) {
+    function drawMirror(f, v, u, objectX, objectTopY, imageX, imageTopY, showImage, activeRays = state.rays) {
       // Rule 1: parallel to the axis, then reflected through/apparently from F.
-      if (state.rays.has(1)) {
+      if (activeRays.has(1)) {
         line(objectX, objectTopY, elementX, objectTopY, 'ray ray-red');
         const end1 = clippedEndpoint(elementX, objectTopY, -1, objectHeight/(f*scale));
         line(elementX, objectTopY, end1[0], end1[1], 'ray ray-red');
         if (showImage && v < 0) line(elementX, objectTopY, imageX, imageTopY, 'virtual');
       }
 
-      // Rule 2: through/toward F, then reflected parallel. It is undefined at u = F.
-      if (state.rays.has(2) && Number.isFinite(v)) {
+      // Rule 2: through/toward F, then reflected parallel.
+      if (activeRays.has(2) && Number.isFinite(v)) {
         const focusX = elementX - f*scale;
         const ray2Y = objectTopY + (elementX-objectX) * (axisY-objectTopY) / (focusX-objectX);
         line(objectX, objectTopY, elementX, ray2Y, 'ray ray-blue');
@@ -635,15 +636,15 @@
       }
 
       // Rule 3: ray at the pole, reflected through the same angle.
-      if (state.rays.has(3)) {
+      if (activeRays.has(3)) {
         line(objectX, objectTopY, elementX, axisY, 'ray ray-purple');
-        const end3 = clippedEndpoint(elementX, axisY, -1, objectHeight/(state.u*scale));
+        const end3 = clippedEndpoint(elementX, axisY, -1, objectHeight/(u*scale));
         line(elementX, axisY, end3[0], end3[1], 'ray ray-purple');
         if (showImage && v < 0) line(elementX, axisY, imageX, imageTopY, 'virtual');
       }
 
       // Rule 4: through/toward C = 2F, then reflected back along the same path.
-      if (state.rays.has(4) && Math.abs(state.u-2*f) >= .2) {
+      if (activeRays.has(4) && Math.abs(u-2*f) >= .2) {
         const centreX = elementX - 2*f*scale;
         const ray4Y = objectTopY + (elementX-objectX) * (axisY-objectTopY) / (centreX-objectX);
         const incidenceSlope = (ray4Y-objectTopY)/(elementX-objectX);
@@ -716,22 +717,25 @@
 
     function rayStatus(f, v) {
       if (!Number.isFinite(state.u)) {
-        return { ray2Degenerate: false, ray4Degenerate: false, validCount: 2, showImage: true, infinityBundle: true };
+        return { ray2Degenerate: false, ray4Degenerate: false, validCount: 2, showImage: true, infinityBundle: true, focalLimit: false };
       }
-      const ray2Degenerate = Number.isFinite(state.u) && f > 0 && !Number.isFinite(v) && state.rays.has(2);
+      const focalLimit = f > 0 && !Number.isFinite(v);
+      const ray2Degenerate = false;
       const ray4Degenerate = state.element === 'mirror' && Number.isFinite(state.u) && f > 0 && Math.abs(state.u-2*f) < .2 && state.rays.has(4);
-      const validCount = state.rays.size - (ray2Degenerate ? 1 : 0) - (ray4Degenerate ? 1 : 0);
-      return { ray2Degenerate, ray4Degenerate, validCount, showImage: validCount >= 2, infinityBundle: false };
+      const validCount = focalLimit ? 2 : state.rays.size - (ray2Degenerate ? 1 : 0) - (ray4Degenerate ? 1 : 0);
+      return { ray2Degenerate, ray4Degenerate, validCount, showImage: validCount >= 2, infinityBundle: false, focalLimit };
     }
 
     function updateRayInterface(status) {
       $('thirdRayName').textContent = state.element === 'lens' ? 'Through optical centre' : 'At pole (equal angles)';
       const fourthInput = controls.rays.querySelector('[data-ray="4"]');
       controls.rays.querySelectorAll('[data-ray]').forEach(input => {
-        input.disabled = status.infinityBundle || (input.dataset.ray === '4' && state.element === 'lens');
+        input.disabled = status.infinityBundle || status.focalLimit || (input.dataset.ray === '4' && state.element === 'lens');
         if (status.infinityBundle) {
           const infinityRays = state.element === 'lens' ? [2, 3] : [2, 4];
           input.checked = infinityRays.includes(+input.dataset.ray);
+        } else if (status.focalLimit) {
+          input.checked = [1, 3].includes(+input.dataset.ray);
         } else {
           input.checked = state.rays.has(+input.dataset.ray);
         }
@@ -739,6 +743,8 @@
       $('fourthRayName').textContent = state.element === 'lens' ? 'Mirror only: through 2F (C)' : 'Through 2F (C) → reflected back';
       if (status.infinityBundle) {
         $('rayMessage').textContent = state.element === 'lens' ? 'At ∞: use rays through F and the optical centre.' : 'At ∞: use rays through F and 2F (C).';
+      } else if (status.focalLimit) {
+        $('rayMessage').textContent = 'At u = F: limiting construction from just inside F.';
       } else if (status.ray4Degenerate) {
         $('rayMessage').textContent = status.showImage ? 'Ray 4 is unavailable at u = 2F.' : 'Ray 4 is unavailable here—select another ray.';
       } else if (status.ray2Degenerate) {
@@ -770,23 +776,27 @@
         return;
       }
       controls.u.disabled = false;
-      const objectX = elementX - state.u*scale;
+      const constructionU = status.focalLimit ? f*.85 : state.u;
+      const constructionV = status.focalLimit ? f*constructionU/(constructionU-f) : v;
+      const constructionM = status.focalLimit ? -constructionV/constructionU : m;
+      const objectX = elementX - constructionU*scale;
       const objectTopY = axisY - objectHeight;
-      const imageCoordinate = state.element === 'lens' ? v : -v;
+      const imageCoordinate = state.element === 'lens' ? constructionV : -constructionV;
       const rawImageX = elementX + imageCoordinate*scale;
       const imageX = Math.max(left, Math.min(right, rawImageX));
-      const rawImageTopY = axisY - m*objectHeight;
+      const rawImageTopY = axisY - constructionM*objectHeight;
       const imageTopY = Math.max(28, Math.min(H-28, rawImageTopY));
+      const constructionRays = status.focalLimit ? new Set([1, 3]) : state.rays;
 
-      if (state.element === 'lens') drawLens(f, v, objectX, objectTopY, rawImageX, rawImageTopY, status.showImage);
-      else drawMirror(f, v, objectX, objectTopY, rawImageX, rawImageTopY, status.showImage);
-      if (status.showImage && v < 0) drawEye(state.element === 'lens' ? 'right' : 'left');
+      if (state.element === 'lens') drawLens(f, constructionV, constructionU, objectX, objectTopY, rawImageX, rawImageTopY, status.showImage, constructionRays);
+      else drawMirror(f, constructionV, constructionU, objectX, objectTopY, rawImageX, rawImageTopY, status.showImage, constructionRays);
+      if (status.showImage && constructionV < 0) drawEye(state.element === 'lens' ? 'right' : 'left');
 
       if (state.customImageUrl) picture(objectX, axisY, objectTopY, 'Object', 'object');
       else arrow(objectX, axisY, objectTopY, 'object', 'Object', 'object');
-      if (status.showImage && Number.isFinite(v)) {
+      if (status.showImage && Number.isFinite(constructionV)) {
         const imageLabel = Math.abs(rawImageX-imageX) > 1 ? 'Image (off-scale)' : 'Image';
-        if (state.customImageUrl) picture(imageX, axisY, imageTopY, imageLabel, 'image', v < 0);
+        if (state.customImageUrl) picture(imageX, axisY, rawImageTopY, imageLabel, 'image', constructionV < 0);
         else arrow(imageX, axisY, imageTopY, 'image', imageLabel, 'image');
       }
 
@@ -794,9 +804,9 @@
       $('fOutput').textContent = `${Math.round(state.fMagnitude)} cm`;
       $('uValue').textContent = `${state.u.toFixed(1).replace('.0','')} cm`;
       $('fValue').textContent = signed(f);
-      $('vValue').textContent = status.showImage ? (Number.isFinite(v) ? signed(v) : '∞') : '—';
+      $('vValue').textContent = status.showImage ? (status.focalLimit ? '−∞' : (Number.isFinite(v) ? signed(v) : '∞')) : '—';
       $('mValue').textContent = status.showImage ? (Number.isFinite(m) ? `${m >= 0 ? '+' : '−'}${Math.abs(m).toFixed(2)}` : '∞') : '—';
-      $('imageDescription').textContent = status.showImage ? imageWords(v, m) : 'Select at least two rays to locate the image';
+      $('imageDescription').textContent = status.showImage ? (status.focalLimit ? 'Virtual, upright and magnified at infinity' : imageWords(v, m)) : 'Select at least two rays to locate the image';
       controls.u.value = Math.round(state.u);
       controls.f.value = Math.round(state.fMagnitude);
       finishMediaFrame();
