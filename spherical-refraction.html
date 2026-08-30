@@ -52,8 +52,7 @@
     .normal { stroke:#00a37a; stroke-width:2.1; stroke-dasharray:7 5; }
     .incidence-point { fill:#00a37a; stroke:white; stroke-width:2; }
     .object { stroke:var(--green); fill:var(--green); } .image { stroke:var(--amber); fill:var(--amber); }
-    .selected-point { fill:none; stroke:var(--brand); stroke-width:2.5; stroke-dasharray:4 3; }
-    .object,.image,.selected-point,.object-label,.image-label { pointer-events:none; }
+    .object,.image,.object-label,.image-label { pointer-events:none; }
     .drag-target { cursor:ew-resize; touch-action:none; }
     .arrow-line { stroke-width:5; stroke-linecap:round; }
     .svg-label { fill:#574850; font-size:13px; font-weight:700; paint-order:stroke; stroke:white; stroke-width:4px; stroke-linejoin:round; }
@@ -63,12 +62,8 @@
     .u-control { padding:14px 18px 16px; border-top:1px solid var(--line); background:#fffaf7; }
     .u-control label { display:flex; justify-content:space-between; gap:10px; max-width:780px; margin:0 auto 7px; color:var(--muted); font-size:12px; font-weight:750; letter-spacing:.04em; text-transform:uppercase; }
     .u-control .range-row { max-width:780px; margin:auto; }
-    .move-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:9px; max-width:780px; margin:13px auto 0; padding-top:12px; border-top:1px solid var(--line); }
-    .move-row > span,.image-upload-title { color:var(--muted); font-size:12px; font-weight:750; }
-    .move-toggle { display:grid; grid-template-columns:1fr 1fr; padding:3px; border:1px solid var(--line); border-radius:10px; background:#f8f5f5; }
-    .move-toggle button { min-height:36px; padding:7px 13px; border:0; border-radius:7px; color:var(--muted); background:transparent; font-weight:750; }
-    .move-toggle button.active { color:white; background:var(--brand); }
-    .image-upload { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:9px; max-width:780px; margin:12px auto 0; }
+    .image-upload-title { color:var(--muted); font-size:12px; font-weight:750; }
+    .image-upload { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:9px; max-width:780px; margin:13px auto 0; padding-top:12px; border-top:1px solid var(--line); }
     .upload-button,.use-point-button { min-height:40px; padding:9px 13px; border:1px solid #d6bdc6; border-radius:9px; color:var(--brand-dark); background:white; font:inherit; font-size:13px; font-weight:750; cursor:pointer; }
     .upload-button:hover,.use-point-button:hover { border-color:var(--brand); background:#fff6f8; }
     .upload-button input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
@@ -136,8 +131,7 @@
       <div class="cases" id="caseControl"><span>Quick cases</span><button class="case-button active" data-case="convex-higher">Convex · n₁ &lt; n₂</button><button class="case-button" data-case="convex-lower">Convex · n₁ &gt; n₂</button><button class="case-button" data-case="concave-higher">Concave · n₁ &lt; n₂</button><button class="case-button" data-case="concave-lower">Concave · n₁ &gt; n₂</button></div>
       <div class="diagram"><svg id="diagram" viewBox="0 0 1100 560" role="img" aria-label="Refraction at a spherical surface ray diagram"></svg><div class="media-layer" aria-hidden="true"><img id="objectMedia" class="diagram-media" alt=""><img id="imageMedia" class="diagram-media" alt=""></div></div>
       <div class="u-control">
-        <label for="objectDistance"><span>Adjust object distance, u</span><span>Move point O</span></label><div class="range-row"><input id="objectDistance" type="range" min="5" max="600" step="1" value="600"><output id="uOutput">600 cm</output></div>
-        <div class="move-row"><span>Drag on diagram</span><div class="move-toggle" id="moveControl"><button class="active" data-value="object">Move O</button><button data-value="image">Move I</button></div></div>
+        <label for="objectDistance"><span>Adjust object distance, u</span><span>Drag O or I directly</span></label><div class="range-row"><input id="objectDistance" type="range" min="5" max="600" step="1" value="600"><output id="uOutput">600 cm</output></div>
         <div class="image-upload">
           <span class="image-upload-title">Point appearance</span>
           <label class="upload-button">Use image, sticker or GIF<input id="objectImageUpload" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
@@ -153,7 +147,7 @@
   </main>
   <script>
     const svg=document.querySelector('#diagram');
-    const state={shape:'convex',n1:1,n2:1.5,Rmag:120,u:600,caseId:'convex-higher',moveTarget:'object',customImageUrl:null,customImageAspect:1,selectedScene:0};
+    const state={shape:'convex',n1:1,n2:1.5,Rmag:120,u:600,caseId:'convex-higher',customImageUrl:null,customImageAspect:1,selectedScene:0};
     const W=1100,H=560,axisY=290,surfaceX=550,scale=.85,left=28,right=W-28;
     const $=id=>document.getElementById(id);
     const mediaNodes={object:$('objectMedia'),image:$('imageMedia')};
@@ -164,22 +158,24 @@
       const power=(state.n2-state.n1)/R;
       const denominator=power-state.n1/state.u;
       const v=Math.abs(denominator)<1e-5?(denominator>=0?Infinity:-Infinity):state.n2/denominator;
-      return {R,power,v};
+      const m=Number.isFinite(v)?-state.n1*v/(state.n2*state.u):(v>0?-Infinity:Infinity);
+      return {R,power,v,m};
     }
     function el(name,attrs={},text=''){const node=document.createElementNS('http://www.w3.org/2000/svg',name);Object.entries(attrs).forEach(([k,v])=>node.setAttribute(k,v));if(text)node.textContent=text;svg.appendChild(node);return node;}
     function line(x1,y1,x2,y2,cls){if(![x1,y1,x2,y2].every(Number.isFinite))return;if(cls.includes('ray-red')||cls.includes('ray-blue')){const marker=cls.includes('ray-red')?'redArrow':'blueArrow';el('polyline',{points:`${x1},${y1} ${(x1+x2)/2},${(y1+y2)/2} ${x2},${y2}`,class:cls,'marker-mid':`url(#${marker})`});}else el('line',{x1,y1,x2,y2,class:cls});}
     function clipped(x,y,dx,dy){const ts=[];if(dx>0)ts.push((right-x)/dx);if(dx<0)ts.push((left-x)/dx);if(dy>0)ts.push((H-24-y)/dy);if(dy<0)ts.push((24-y)/dy);const t=Math.min(...ts.filter(v=>v>0));return[x+dx*t,y+dy*t];}
-    function point(x,cls,label,offScale=false,kind=''){
-      const selected=kind===state.moveTarget;
-      if(selected)el('circle',{cx:x,cy:axisY,r:18,class:'selected-point'});
+    function point(x,cls,label,offScale=false,kind='',hitWidth=84,hitHeight=96){
       el('circle',{cx:x,cy:axisY,r:7,class:cls});
       el('text',{x,y:state.customImageUrl?axisY+31:axisY-17,'text-anchor':'middle',class:`svg-label ${cls}-label`},offScale?`${label} (off-scale)`:label);
-      if(selected)el('rect',{x:x-42,y:axisY-76,width:84,height:116,fill:'transparent',class:'drag-target','data-drag':kind});
+      el('rect',{x:x-hitWidth/2,y:axisY-hitHeight/2,width:hitWidth,height:hitHeight,fill:'transparent',class:'drag-target','data-drag':kind});
     }
-    function placeMedia(node,x,isVirtual=false){
+    function mediaSize(magnitude=1){
+      const height=72*Math.abs(magnitude),aspect=Math.max(.25,Math.min(2.5,state.customImageAspect));
+      return{height,width:height*aspect};
+    }
+    function placeMedia(node,x,size,isVirtual=false,inverted=false){
       if(!state.customImageUrl){node.style.visibility='hidden';return;}
-      const height=72,width=Math.min(180,Math.max(24,height*Math.max(.25,Math.min(2.5,state.customImageAspect))));
-      node.style.visibility='visible';node.style.left=`${x/W*100}%`;node.style.top=`${(axisY-height-7)/H*100}%`;node.style.width=`${width/W*100}%`;node.style.height=`${height/H*100}%`;node.classList.toggle('virtual-picture',isVirtual);
+      node.style.visibility='visible';node.style.left=`${x/W*100}%`;node.style.top=`${axisY/H*100}%`;node.style.width=`${size.width/W*100}%`;node.style.height=`${size.height/H*100}%`;node.style.transform=`translate(-50%,-50%)${inverted?' scaleY(-1)':''}`;node.classList.toggle('virtual-picture',isVirtual);
     }
     function eye(){const g=el('g',{transform:`translate(${right-50} 82)`});const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d','M -31 0 Q 0 -23 31 0 Q 0 23 -31 0 Z');p.setAttribute('class','eye-outline');g.appendChild(p);for(const [r,c] of [[11,'eye-iris'],[4.5,'eye-pupil']]){const q=document.createElementNS('http://www.w3.org/2000/svg','circle');q.setAttribute('cx','-5');q.setAttribute('cy','0');q.setAttribute('r',r);q.setAttribute('class',c);g.appendChild(q);}}
     function surfaceGeometry(R){const radius=Math.abs(R)*scale,cx=surfaceX+R*scale,half=Math.min(205,radius*.9),points=[];for(let y=axisY-half;y<=axisY+half;y+=5){const dy=y-axisY,x=cx-Math.sign(R)*Math.sqrt(Math.max(0,radius*radius-dy*dy));points.push(`${x},${y}`);}return{radius,cx,half,points:points.join(' ')}};
@@ -195,7 +191,7 @@
       el('text',{x:145,y:99,class:'svg-label'},firstRelation);el('text',{x:820,y:99,class:'svg-label'},secondRelation);
     }
     function render(){
-      const {R,power,v}=values(),g=surfaceGeometry(R);base(R,g);
+      const {R,power,v,m}=values(),g=surfaceGeometry(R);base(R,g);
       const objectX=surfaceX-state.u*scale;
       const imageCoordX=surfaceX+v*scale;
       const imageX=Math.max(left,Math.min(right,imageCoordX));
@@ -220,11 +216,12 @@
         line(obliqueX,obliqueY,right,obliqueY,'ray ray-blue');
       }
       el('circle',{cx:obliqueX,cy:obliqueY,r:5,class:'incidence-point'});
-      point(objectX,'object','O',false,'object');
-      if(Number.isFinite(v))point(imageX,'image','I',Math.abs(imageCoordX-imageX)>1,'image');
+      const objectSize=mediaSize(),imageSize=Number.isFinite(m)?mediaSize(m):mediaSize();
+      point(objectX,'object','O',false,'object',Math.max(84,objectSize.width+20),Math.max(96,objectSize.height+20));
+      if(Number.isFinite(v))point(imageX,'image','I',Math.abs(imageCoordX-imageX)>1,'image',Math.max(84,imageSize.width+20),Math.max(96,imageSize.height+20));
       if(v<0)eye();
-      placeMedia(mediaNodes.object,objectX);
-      if(Number.isFinite(v))placeMedia(mediaNodes.image,imageX,v<0);else mediaNodes.image.style.visibility='hidden';
+      placeMedia(mediaNodes.object,objectX,objectSize);
+      if(Number.isFinite(v))placeMedia(mediaNodes.image,imageX,imageSize,v<0,m<0);else mediaNodes.image.style.visibility='hidden';
 
       $('n1Output').textContent=state.n1.toFixed(2);$('n2Output').textContent=state.n2.toFixed(2);$('rOutput').textContent=`${state.Rmag} cm`;$('uOutput').textContent=`${Math.round(state.u)} cm`;
       $('uValue').textContent=`${Math.round(state.u)} cm`;$('rValue').textContent=`${R>=0?'+':'−'}${Math.abs(R)} cm`;$('vValue').textContent=Number.isFinite(v)?`${v>=0?'+':'−'}${Math.abs(v).toFixed(1)} cm`:'∞';
@@ -235,13 +232,6 @@
     $('shapeControl').addEventListener('click',e=>{if(!e.target.dataset.value)return;setShape(e.target.dataset.value);custom();render();});
     ['n1','n2','radius','objectDistance'].forEach(id=>$(id).addEventListener('input',e=>{if(id==='n1')state.n1=+e.target.value;if(id==='n2')state.n2=+e.target.value;if(id==='radius')state.Rmag=+e.target.value;if(id==='objectDistance')state.u=+e.target.value;custom();render();}));
     $('caseControl').addEventListener('click',e=>{const id=e.target.dataset.case;if(!id)return;state.caseId=id;const [shape,relation]=id.split('-');setShape(shape);if(relation==='higher'){state.n1=1;state.n2=1.5;}else{state.n1=1.5;state.n2=1;}$('n1').value=state.n1;$('n2').value=state.n2;document.querySelectorAll('.case-button').forEach(b=>b.classList.toggle('active',b.dataset.case===id));render();});
-
-    $('moveControl').addEventListener('click',event=>{
-      if(!event.target.dataset.value)return;
-      state.moveTarget=event.target.dataset.value;
-      document.querySelectorAll('#moveControl button').forEach(button=>button.classList.toggle('active',button.dataset.value===state.moveTarget));
-      render();
-    });
 
     const uploadInput=$('objectImageUpload'),removeImageButton=$('removeObjectImage'),uploadStatus=$('uploadStatus'),scenePicker=$('builtInScenes');
     const allowedImageTypes=new Set(['image/png','image/jpeg','image/webp','image/gif']);
@@ -287,7 +277,11 @@
     });
 
     function svgX(event){const point=svg.createSVGPoint();point.x=event.clientX;point.y=event.clientY;return point.matrixTransform(svg.getScreenCTM().inverse()).x;}
-    svg.addEventListener('pointerdown',event=>{const target=event.target.closest('[data-drag]');if(!target)return;dragging=target.dataset.drag;svg.setPointerCapture(event.pointerId);});
+    svg.addEventListener('pointerdown',event=>{
+      const target=event.target.closest('[data-drag]');if(!target)return;
+      const x=svgX(event),{v}=values(),objectX=surfaceX-state.u*scale,imageX=Number.isFinite(v)?Math.max(left,Math.min(right,surfaceX+v*scale)):Infinity;
+      dragging=Math.abs(x-objectX)<=Math.abs(x-imageX)?'object':'image';svg.setPointerCapture(event.pointerId);
+    });
     svg.addEventListener('pointermove',event=>{
       if(!dragging)return;const x=svgX(event);
       if(dragging==='object')state.u=Math.max(5,Math.min(600,(surfaceX-x)/scale));
@@ -299,7 +293,7 @@
     });
     svg.addEventListener('pointerup',()=>dragging=null);svg.addEventListener('pointercancel',()=>dragging=null);
 
-    $('reset').addEventListener('click',()=>{Object.assign(state,{shape:'convex',n1:1,n2:1.5,Rmag:120,u:600,caseId:'convex-higher',moveTarget:'object'});setShape('convex');$('n1').value=1;$('n2').value=1.5;$('radius').value=120;$('objectDistance').value=600;document.querySelectorAll('.case-button').forEach(b=>b.classList.toggle('active',b.dataset.case==='convex-higher'));document.querySelectorAll('#moveControl button').forEach(button=>button.classList.toggle('active',button.dataset.value==='object'));render();});
+    $('reset').addEventListener('click',()=>{Object.assign(state,{shape:'convex',n1:1,n2:1.5,Rmag:120,u:600,caseId:'convex-higher'});setShape('convex');$('n1').value=1;$('n2').value=1.5;$('radius').value=120;$('objectDistance').value=600;document.querySelectorAll('.case-button').forEach(b=>b.classList.toggle('active',b.dataset.case==='convex-higher'));render();});
     render();
   </script>
 </body>
